@@ -127,7 +127,12 @@ export default function MessageList({
       {messages.map((m, idx) => {
         const mine = m.userId === myUserId;
         const prev = idx > 0 ? messages[idx - 1] : null;
-        const showHeader = !prev || prev.userId !== m.userId;
+        const next = idx < messages.length - 1 ? messages[idx + 1] : null;
+        const BURST_GAP_MS = 2 * 60 * 1000; // 2 minutes
+        // First of burst: previous from someone else OR > 2min gap
+        const showHeader = !prev || prev.userId !== m.userId || (m.ts - prev.ts) > BURST_GAP_MS;
+        // Last of burst: next from someone else OR > 2min gap
+        const showTimestamp = !next || next.userId !== m.userId || (next.ts - m.ts) > BURST_GAP_MS;
         const accent = colorForUser(m.userId);
         const editing = editingId === m.id;
 
@@ -285,9 +290,11 @@ export default function MessageList({
                 </div>
               )}
 
-              <div className={`text-[10px] opacity-50 mt-1 ${mine ? "text-right mr-2" : "ml-2"}`}>
-                {new Date(m.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-              </div>
+              {showTimestamp && (
+                <div className={`text-[10px] opacity-50 mt-1 ${mine ? "text-right mr-2" : "ml-2"}`}>
+                  {new Date(m.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                </div>
+              )}
 
               {isLastMine && readers.length > 0 && <SeenBy readers={readers} />}
             </div>
