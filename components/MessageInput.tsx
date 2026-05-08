@@ -144,7 +144,7 @@ export default function MessageInput({
   const canSend = !!pending || !!text.trim();
 
   return (
-    <div className="border-t-2 border-ink bg-white/80 backdrop-blur p-2 sm:p-3 relative" ref={popRef}>
+    <div className="border-t-2 border-ink bg-white/80 backdrop-blur p-2 sm:p-3 relative z-20" ref={popRef}>
       {replyingTo && (
         <div
           className="mb-2 flex items-center justify-between gap-2 rounded-md px-2 py-1.5"
@@ -194,7 +194,7 @@ export default function MessageInput({
       )}
 
       {showEmoji && (
-        <div className="absolute bottom-20 left-3 z-[60]">
+        <div className="absolute bottom-20 left-3 z-[100]">
           <EmojiPicker
             onEmojiClick={(d) => {
               setText((t) => t + d.emoji);
@@ -206,7 +206,7 @@ export default function MessageInput({
         </div>
       )}
       {showGif && (
-        <div className="absolute bottom-20 left-3 z-[60] solid-card">
+        <div className="absolute bottom-20 left-3 z-[100] solid-card">
           <GifPicker
             onSelect={(url) => {
               setPending({ kind: "gif", gifUrl: url });
