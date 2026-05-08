@@ -160,6 +160,28 @@ export default function ChatRoom({ userId, username }: { userId: string; usernam
         const { id } = payload as { id: string };
         setMessages((prev) => prev.filter((m) => m.id !== id));
       })
+      .on("broadcast", { event: "reaction" }, ({ payload }) => {
+        const { messageId, emoji, userId: rUid, username: rName, action } = payload as {
+          messageId: string; emoji: string; userId: string; username: string; action: "add" | "remove";
+        };
+        setMessages((prev) =>
+          prev.map((m) => {
+            if (m.id !== messageId) return m;
+            const reactions = { ...(m.reactions ?? {}) };
+            const existing = reactions[emoji] ?? [];
+            if (action === "add") {
+              if (!existing.find((u) => u.userId === rUid)) {
+                reactions[emoji] = [...existing, { userId: rUid, username: rName }];
+              }
+            } else {
+              const next = existing.filter((u) => u.userId !== rUid);
+              if (next.length === 0) delete reactions[emoji];
+              else reactions[emoji] = next;
+            }
+            return { ...m, reactions };
+          }),
+        );
+      })
       .on("broadcast", { event: "read" }, ({ payload }) => {
         const r = payload as ReadReceipt;
         setReads((prev) => {
@@ -236,6 +258,37 @@ export default function ChatRoom({ userId, username }: { userId: string; usernam
       });
     },
     [],
+  );
+
+  const toggleReaction = useCallback(
+    (messageId: string, emoji: string) => {
+      // Determine next action based on current state (optimistic)
+      let action: "add" | "remove" = "add";
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (m.id !== messageId) return m;
+          const reactions = { ...(m.reactions ?? {}) };
+          const existing = reactions[emoji] ?? [];
+          const already = existing.find((u) => u.userId === userId);
+          if (already) {
+            action = "remove";
+            const next = existing.filter((u) => u.userId !== userId);
+            if (next.length === 0) delete reactions[emoji];
+            else reactions[emoji] = next;
+          } else {
+            action = "add";
+            reactions[emoji] = [...existing, { userId, username }];
+          }
+          return { ...m, reactions };
+        }),
+      );
+      channelRef.current?.send({
+        type: "broadcast",
+        event: "reaction",
+        payload: { messageId, emoji, userId, username, action },
+      });
+    },
+    [userId, username],
   );
 
   const deleteMessage = useCallback((id: string) => {
@@ -336,6 +389,7 @@ export default function ChatRoom({ userId, username }: { userId: string; usernam
           onEdit={editMessage}
           onDelete={deleteMessage}
           onReply={setReplyingTo}
+          onReact={toggleReaction}
         />
         <MessageInput
           onSend={send}

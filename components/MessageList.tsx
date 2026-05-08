@@ -49,6 +49,7 @@ export default function MessageList({
   onEdit,
   onDelete,
   onReply,
+  onReact,
 }: {
   messages: ChatMessage[];
   myUserId: string;
@@ -58,7 +59,9 @@ export default function MessageList({
   onEdit: (id: string, newText: string) => void;
   onDelete: (id: string) => void;
   onReply: (ref: ReplyRef) => void;
+  onReact: (messageId: string, emoji: string) => void;
 }) {
+  const QUICK_REACTIONS = ["❤️", "😂", "👍", "😮", "🐾"];
   const ref = useRef<HTMLDivElement>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
@@ -147,8 +150,18 @@ export default function MessageList({
               <div className="relative">
                 {!editing && (
                   <div
-                    className={`absolute -top-4 z-10 flex items-center gap-1 bg-white border-2 border-ink rounded-full px-1.5 py-0.5 shadow-popSm opacity-0 group-hover:opacity-100 transition-opacity ${mine ? "right-2" : "left-2"}`}
+                    className={`absolute -top-5 z-10 flex items-center gap-0.5 bg-white border-2 border-ink rounded-full px-1.5 py-0.5 shadow-popSm opacity-0 group-hover:opacity-100 transition-opacity ${mine ? "right-2" : "left-2"}`}
                   >
+                    {QUICK_REACTIONS.map((emo) => (
+                      <button
+                        key={emo}
+                        onClick={() => onReact(m.id, emo)}
+                        className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-sky/30 text-base leading-none transition hover:scale-125"
+                        title={`React ${emo}`}
+                        aria-label={`React with ${emo}`}
+                      >{emo}</button>
+                    ))}
+                    <span className="w-px h-5 bg-ink/30 mx-0.5" />
                     <button
                       onClick={() => onReply(buildReplyRef(m))}
                       className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-sky text-sm leading-none"
@@ -231,6 +244,25 @@ export default function MessageList({
                   )}
                 </div>
               </div>
+
+              {m.reactions && Object.keys(m.reactions).length > 0 && (
+                <div className={`flex flex-wrap gap-1 mt-1 ${mine ? "justify-end mr-1" : "ml-1"}`}>
+                  {Object.entries(m.reactions).map(([emo, users]) => {
+                    const reactedByMe = users.some((u) => u.userId === myUserId);
+                    return (
+                      <button
+                        key={emo}
+                        onClick={() => onReact(m.id, emo)}
+                        className={`flex items-center gap-1 rounded-full px-1.5 py-0.5 text-xs border transition ${reactedByMe ? "bg-mint border-ink font-bold" : "bg-white border-ink/40 hover:border-ink"}`}
+                        title={users.map((u) => u.username).join(", ")}
+                      >
+                        <span>{emo}</span>
+                        <span className="text-[11px]">{users.length}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
 
               <div className={`text-[10px] opacity-50 mt-1 ${mine ? "text-right mr-2" : "ml-2"}`}>
                 {new Date(m.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}

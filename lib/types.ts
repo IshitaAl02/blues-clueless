@@ -11,6 +11,13 @@ export interface ChatMessage {
   ts: number;
   edited?: boolean;
   replyTo?: ReplyRef;
+  // emoji -> list of { userId, username }
+  reactions?: Record<string, ReactionUser[]>;
+}
+
+export interface ReactionUser {
+  userId: string;
+  username: string;
 }
 
 export interface ReplyRef {
