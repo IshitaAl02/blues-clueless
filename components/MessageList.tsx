@@ -2,6 +2,16 @@
 
 import { useEffect, useRef } from "react";
 import type { ChatMessage } from "@/lib/types";
+import { avatarUrlForUser, colorForUser } from "@/lib/avatar";
+
+function Avatar({ seed, size = 36 }: { seed: string; size?: number }) {
+  return (
+    <div className="avatar-ring" style={{ width: size, height: size }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={avatarUrlForUser(seed)} alt={seed} width={size} height={size} />
+    </div>
+  );
+}
 
 export default function MessageList({
   messages,
@@ -25,15 +35,44 @@ export default function MessageList({
           🐾 No clues yet. Say hi!
         </div>
       )}
-      {messages.map((m) => {
+
+      {messages.map((m, idx) => {
         const mine = m.userId === myUserId;
+        const prev = idx > 0 ? messages[idx - 1] : null;
+        const showHeader = !prev || prev.userId !== m.userId;
+        const accent = colorForUser(m.userId);
+
         return (
-          <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+          <div key={m.id} className={`flex gap-2 ${mine ? "justify-end" : "justify-start"}`}>
+            {!mine && (
+              <div className="w-9">
+                {showHeader ? <Avatar seed={m.username} /> : null}
+              </div>
+            )}
+
             <div className="max-w-[75%]">
-              {!mine && (
-                <div className="text-xs font-semibold mb-1 ml-2 opacity-80">{m.username}</div>
+              {showHeader && (
+                <div
+                  className={`text-xs font-bold mb-1 ${mine ? "text-right mr-1" : "ml-1"}`}
+                  style={{ color: mine ? "#093C5D" : accent }}
+                >
+                  <span
+                    className="px-2 py-0.5 rounded-full"
+                    style={{
+                      background: mine ? "#5DF8D8" : `${accent}22`,
+                      border: `1.5px solid ${mine ? "#093C5D" : accent}`,
+                      color: "#093C5D",
+                    }}
+                  >
+                    {m.username}{mine && " (you)"}
+                  </span>
+                </div>
               )}
-              <div className={`${mine ? "bubble-me" : "bubble-them"} px-3 py-2 break-words`}>
+
+              <div
+                className={`${mine ? "bubble-me" : "bubble-them"} px-3 py-2 break-words`}
+                style={!mine ? { borderColor: accent, boxShadow: `0 3px 0 0 ${accent}` } : undefined}
+              >
                 {m.kind === "text" && <span>{m.text}</span>}
                 {m.kind === "image" && m.imageData && (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -44,13 +83,21 @@ export default function MessageList({
                   <img src={m.gifUrl} alt="gif" className="rounded-lg max-h-60" />
                 )}
               </div>
+
               <div className={`text-[10px] opacity-50 mt-1 ${mine ? "text-right mr-2" : "ml-2"}`}>
                 {new Date(m.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               </div>
             </div>
+
+            {mine && (
+              <div className="w-9">
+                {showHeader ? <Avatar seed={m.username} /> : null}
+              </div>
+            )}
           </div>
         );
       })}
+
       {typingUsers.length > 0 && (
         <div className="flex items-center gap-2 text-sm opacity-70 ml-2">
           <span>🐾 {typingUsers.join(", ")} {typingUsers.length === 1 ? "is" : "are"} thinking</span>

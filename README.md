@@ -7,9 +7,19 @@ A tiny, ephemeral group chat for a small crew. One shared room. Messages live on
 ## Stack
 
 - **Next.js 14** (App Router, TypeScript) — deploys clean to Vercel
-- **Supabase** — email/password auth + realtime broadcast channel + a tiny `profiles` table
-- **Tailwind CSS** — custom Blue's Clues–y theme (navy, cyan, cream, paws)
+- **Supabase** — auth (no email needed — see below) + realtime broadcast + a tiny `profiles` table
+- **Tailwind CSS** — custom palette (`#093C5D`, `#3B7597`, `#6FD1D7`, `#5DF8D8`) with cartoon SVGs
+- **DiceBear** — auto-generated cartoon avatars (one per username, deterministic)
 - **emoji-picker-react**, **@giphy/react-components** — emojis & GIFs
+
+## Auth (username + password + secret key)
+
+There's no email field. To sign up, friends need a **secret key** (`8090` by default — change it in [`lib/auth.ts`](lib/auth.ts) before you share the link).
+
+- **Sign up**: pick a username, a password, enter the secret key. Done.
+- **Log in**: just username + password.
+
+Under the hood, Supabase still requires an email per account, so we synthesize one from the username (e.g. `ishiish@bluesclueless.chat`). Users never see or type it. Make sure email confirmation is **off** in Supabase (Authentication → Providers → Email → uncheck "Confirm email") so signups complete instantly without an inbox.
 
 ## How "ephemeral" works
 
@@ -32,7 +42,7 @@ npm install
 
 1. Go to <https://supabase.com> → New Project.
 2. In **Project Settings → API**, copy the **Project URL** and **anon public key**.
-3. In **Authentication → Providers → Email**, you can disable "Confirm email" for instant signup during dev (optional).
+3. In **Authentication → Providers → Email**, **disable "Confirm email"** (required — otherwise signups will hang waiting for an email confirmation that nobody can click).
 
 ### 3. Run this SQL in the Supabase SQL Editor
 

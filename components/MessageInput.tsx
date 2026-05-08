@@ -62,7 +62,7 @@ export default function MessageInput({
   }
 
   return (
-    <div className="border-t-2 border-navy bg-white p-3 relative" ref={popRef}>
+    <div className="border-t-2 border-ink bg-white/80 backdrop-blur p-3 relative" ref={popRef}>
       {showEmoji && (
         <div className="absolute bottom-20 left-3 z-20">
           <EmojiPicker
@@ -76,7 +76,7 @@ export default function MessageInput({
         </div>
       )}
       {showGif && (
-        <div className="absolute bottom-20 left-3 z-20 paw-card">
+        <div className="absolute bottom-20 left-3 z-20 solid-card">
           <GifPicker
             onSelect={(url) => {
               onSend({ kind: "gif", gifUrl: url });
@@ -89,22 +89,19 @@ export default function MessageInput({
       <div className="flex items-end gap-2">
         <button
           type="button"
-          className="paw-btn !px-3"
-          style={{ background: "#FFF8E7" }}
+          className="btn-ghost !px-3 !py-2 text-lg"
           onClick={() => { setShowEmoji((s) => !s); setShowGif(false); }}
           aria-label="Emoji"
         >😊</button>
         <button
           type="button"
-          className="paw-btn !px-3"
-          style={{ background: "#FFF8E7" }}
+          className="btn-ghost !px-3 !py-2 text-lg"
           onClick={() => { setShowGif((s) => !s); setShowEmoji(false); }}
           aria-label="GIF"
         >GIF</button>
         <button
           type="button"
-          className="paw-btn !px-3"
-          style={{ background: "#FFF8E7" }}
+          className="btn-ghost !px-3 !py-2 text-lg"
           onClick={() => fileRef.current?.click()}
           disabled={busy}
           aria-label="Image"
@@ -117,7 +114,7 @@ export default function MessageInput({
           onChange={handleFile}
         />
         <textarea
-          className="paw-input flex-1 resize-none"
+          className="field flex-1 resize-none"
           rows={1}
           placeholder="Got a clue? Type it…"
           value={text}
@@ -129,7 +126,7 @@ export default function MessageInput({
             }
           }}
         />
-        <button className="paw-btn" onClick={sendText} disabled={!text.trim() || busy}>
+        <button className="btn-primary" onClick={sendText} disabled={!text.trim() || busy}>
           Send
         </button>
       </div>

@@ -25,7 +25,7 @@ export default function GifPicker({ onSelect }: { onSelect: (url: string) => voi
   return (
     <div className="p-2 w-[360px] max-w-[90vw]">
       <input
-        className="paw-input mb-2"
+        className="field mb-2"
         placeholder="Search GIFs..."
         value={query}
         onChange={(e) => setQuery(e.target.value)}

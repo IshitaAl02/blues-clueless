@@ -6,7 +6,8 @@ import { supabase, ROOM } from "@/lib/supabase";
 import type { ChatMessage, PresenceUser } from "@/lib/types";
 import MessageList from "./MessageList";
 import MessageInput from "./MessageInput";
-import PawLogo from "./PawLogo";
+import { PawLogo } from "./Cartoons";
+import { avatarUrlForUser, colorForUser } from "@/lib/avatar";
 
 export default function ChatRoom({ userId, username }: { userId: string; username: string }) {
   const router = useRouter();
@@ -105,25 +106,40 @@ export default function ChatRoom({ userId, username }: { userId: string; usernam
 
   return (
     <main className="min-h-screen flex justify-center p-3 sm:p-6">
-      <div className="paw-card flex flex-col w-full max-w-3xl h-[90vh] overflow-hidden">
-        <header className="flex items-center justify-between px-4 py-3 border-b-2 border-navy bg-cream">
-          <div className="flex items-center gap-2">
-            <PawLogo size={36} />
+      <div className="glass-card flex flex-col w-full max-w-3xl h-[92vh] overflow-hidden">
+        <header
+          className="flex items-center justify-between px-4 py-3 border-b-2 border-ink"
+          style={{ background: "linear-gradient(135deg, #5DF8D8 0%, #6FD1D7 100%)" }}
+        >
+          <div className="flex items-center gap-3">
+            <PawLogo size={42} />
             <div>
-              <h1 className="text-2xl leading-none">Blue's Clueless</h1>
-              <p className="text-xs italic opacity-70">"We have no idea either."</p>
+              <h1 className="text-2xl leading-tight">Blue's Clueless</h1>
+              <p className="text-[11px] italic opacity-80">"We have no idea either."</p>
             </div>
           </div>
+
           <div className="flex items-center gap-3">
-            <div className="text-sm">
-              <span className="font-semibold">{online.length}</span> online
-              <div className="text-[10px] opacity-70 max-w-[160px] truncate">
-                {online.map((u) => u.username).join(", ")}
-              </div>
+            <div className="hidden sm:flex -space-x-2">
+              {online.slice(0, 5).map((u) => (
+                <div
+                  key={u.userId}
+                  className="avatar-ring"
+                  style={{ width: 30, height: 30, borderColor: colorForUser(u.userId) }}
+                  title={u.username}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={avatarUrlForUser(u.username)} alt={u.username} width={30} height={30} />
+                </div>
+              ))}
+              {online.length > 5 && (
+                <div className="avatar-ring flex items-center justify-center text-[10px] font-bold" style={{ width: 30, height: 30 }}>
+                  +{online.length - 5}
+                </div>
+              )}
             </div>
-            <button onClick={logout} className="paw-btn !px-3 !py-1 text-sm" style={{ background: "#FFF8E7" }}>
-              Leave
-            </button>
+            <span className="chip">🐾 {online.length} online</span>
+            <button onClick={logout} className="btn-ghost !py-1 !px-3 text-sm">Leave</button>
           </div>
         </header>
 
