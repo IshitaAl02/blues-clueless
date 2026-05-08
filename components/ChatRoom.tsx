@@ -4,6 +4,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { ChatMessage, PresenceUser, ReadReceipt, ReplyRef } from "@/lib/types";
 import { Conversation, channelForConversation, displayName } from "@/lib/conversations";
+import {
+  fetchRecentMessages,
+  insertMessageDb,
+  updateMessageTextDb,
+  deleteMessageDb,
+} from "@/lib/messages";
 import MessageList from "./MessageList";
 import MessageInput from "./MessageInput";
 import Toasts, { ToastItem } from "./Toasts";
@@ -137,14 +143,22 @@ export default function ChatRoom({
     sendRead(latestTs);
   }, [focused, messages, sendRead]);
 
-  // Reset local state when switching conversations — messages are ephemeral
+  // Reset local state when switching conversations + load recent persisted messages
   useEffect(() => {
     setMessages([]);
     setReads({});
     setTyping({});
     setUnread(0);
     setReplyingTo(null);
-  }, [conversation.id]);
+    // Lobby is ephemeral — only DB-backed convs (groups & DMs) get history
+    if (conversation.kind !== "lobby") {
+      let cancelled = false;
+      fetchRecentMessages(conversation.id).then((msgs) => {
+        if (!cancelled) setMessages(msgs);
+      });
+      return () => { cancelled = true; };
+    }
+  }, [conversation.id, conversation.kind]);
 
   useEffect(() => {
     const channel = supabase.channel(channelForConversation(conversation), {
@@ -263,8 +277,11 @@ export default function ChatRoom({
       setMessages((prev) => [...prev, msg]);
       ch.send({ type: "broadcast", event: "message", payload: msg });
       setReplyingTo(null);
+      if (conversation.kind !== "lobby") {
+        insertMessageDb(conversation.id, msg);
+      }
     },
-    [userId, username, replyingTo],
+    [userId, username, replyingTo, conversation.id, conversation.kind],
   );
 
   const editMessage = useCallback(
@@ -275,8 +292,11 @@ export default function ChatRoom({
         event: "message:edit",
         payload: { id, text },
       });
+      if (conversation.kind !== "lobby") {
+        updateMessageTextDb(id, text);
+      }
     },
-    [],
+    [conversation.kind],
   );
 
   const toggleReaction = useCallback(
@@ -317,7 +337,10 @@ export default function ChatRoom({
       event: "message:delete",
       payload: { id },
     });
-  }, []);
+    if (conversation.kind !== "lobby") {
+      deleteMessageDb(id);
+    }
+  }, [conversation.kind]);
 
   const onTyping = useCallback(() => {
     const now = Date.now();

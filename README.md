@@ -138,6 +138,49 @@ drop policy if exists "auth users add members" on public.conversation_members;
 create policy "auth users add members"
   on public.conversation_members for insert to authenticated
   with check (true);
+
+-- ====== Messages (1-hour retention for groups & DMs) ======
+
+create table if not exists public.messages (
+  id uuid primary key default gen_random_uuid(),
+  conversation_id uuid not null references public.conversations on delete cascade,
+  user_id uuid not null references auth.users on delete cascade,
+  username text not null,
+  kind text not null check (kind in ('text','image','gif')),
+  text text,
+  image_data text,
+  gif_url text,
+  reply_to jsonb,
+  edited boolean default false,
+  created_at timestamptz default now()
+);
+
+create index if not exists messages_conv_created_idx
+  on public.messages (conversation_id, created_at desc);
+
+alter table public.messages enable row level security;
+
+drop policy if exists "members read messages" on public.messages;
+create policy "members read messages"
+  on public.messages for select to authenticated
+  using (public.is_member(conversation_id));
+
+drop policy if exists "members insert messages" on public.messages;
+create policy "members insert messages"
+  on public.messages for insert to authenticated
+  with check (public.is_member(conversation_id) and user_id = auth.uid());
+
+drop policy if exists "owners update own messages" on public.messages;
+create policy "owners update own messages"
+  on public.messages for update to authenticated
+  using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+drop policy if exists "owners delete own messages" on public.messages;
+create policy "owners delete own messages"
+  on public.messages for delete to authenticated
+  using (user_id = auth.uid());
+
+grant all on public.messages to anon, authenticated;
 ```
 
 If you've already deployed once and just need this conversations migration, run **only** the `-- Conversations + members` section.
