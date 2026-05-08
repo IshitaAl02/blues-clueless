@@ -19,10 +19,12 @@ export default function ChatRoom({ userId, username }: { userId: string; usernam
   const [unread, setUnread] = useState(0);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [focused, setFocused] = useState(true);
+  const [notifEnabled, setNotifEnabled] = useState(false);
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const typingSentAt = useRef(0);
   const lastReadSentAt = useRef(0);
+  const notifEnabledRef = useRef(false);
 
   // Track window focus
   useEffect(() => {
@@ -46,6 +48,51 @@ export default function ChatRoom({ userId, username }: { userId: string; usernam
   useEffect(() => {
     if (focused) setUnread(0);
   }, [focused]);
+
+  // Load notification preference from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem("bc:notif");
+    if (saved === "1" && typeof Notification !== "undefined" && Notification.permission === "granted") {
+      setNotifEnabled(true);
+    }
+  }, []);
+
+  async function toggleNotifications() {
+    if (typeof Notification === "undefined") {
+      alert("Your browser doesn't support notifications.");
+      return;
+    }
+    if (notifEnabled) {
+      setNotifEnabled(false);
+      localStorage.setItem("bc:notif", "0");
+      return;
+    }
+    let perm = Notification.permission;
+    if (perm === "default") perm = await Notification.requestPermission();
+    if (perm !== "granted") {
+      alert("Notifications are blocked. Enable them in your browser's site settings, then try again.");
+      return;
+    }
+    setNotifEnabled(true);
+    localStorage.setItem("bc:notif", "1");
+  }
+
+  // Keep ref in sync so the long-lived channel handler reads current value
+  useEffect(() => { notifEnabledRef.current = notifEnabled; }, [notifEnabled]);
+
+  function fireDesktopNotif(title: string, body: string) {
+    if (!notifEnabledRef.current || typeof Notification === "undefined") return;
+    if (Notification.permission !== "granted") return;
+    if (document.hasFocus()) return; // don't bug user when they're already looking
+    try {
+      const n = new Notification(title, {
+        body,
+        icon: "/favicon.ico",
+        tag: "blues-clueless",
+      });
+      n.onclick = () => { window.focus(); n.close(); };
+    } catch { /* ignore */ }
+  }
 
   function pushToast(t: ToastItem) {
     setToasts((prev) => [...prev.slice(-2), t]); // keep max 3
@@ -89,12 +136,14 @@ export default function ChatRoom({ userId, username }: { userId: string; usernam
             msg.kind === "text" ? (msg.text ?? "")
             : msg.kind === "image" ? "📷 sent an image"
             : "🎬 sent a GIF";
+          const trimmed = preview.length > 80 ? preview.slice(0, 80) + "…" : preview;
           pushToast({
             id: msg.id,
             username: msg.username,
             userId: msg.userId,
-            text: preview.length > 80 ? preview.slice(0, 80) + "…" : preview,
+            text: trimmed,
           });
+          fireDesktopNotif(`${msg.username} • Blue's Clueless`, trimmed);
         }
       })
       .on("broadcast", { event: "message:edit" }, ({ payload }) => {
@@ -258,6 +307,14 @@ export default function ChatRoom({ userId, username }: { userId: string; usernam
               )}
             </div>
             <span className="chip">🐾 {online.length} online</span>
+            <button
+              onClick={toggleNotifications}
+              className="btn-ghost !py-1 !px-3 text-sm"
+              title={notifEnabled ? "Notifications on — click to turn off" : "Notifications off — click to turn on"}
+              aria-label="Toggle notifications"
+            >
+              {notifEnabled ? "🔔" : "🔕"}
+            </button>
             <button onClick={logout} className="btn-ghost !py-1 !px-3 text-sm">Leave</button>
           </div>
         </header>
