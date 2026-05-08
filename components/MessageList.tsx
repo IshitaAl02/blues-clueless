@@ -144,19 +144,21 @@ export default function MessageList({
                 </div>
               )}
 
-              <div className="flex items-center gap-1">
+              <div className="relative">
                 {!editing && (
-                  <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div
+                    className={`absolute -top-4 z-10 flex items-center gap-1 bg-white border-2 border-ink rounded-full px-1.5 py-0.5 shadow-popSm opacity-0 group-hover:opacity-100 transition-opacity ${mine ? "right-2" : "left-2"}`}
+                  >
                     <button
                       onClick={() => onReply(buildReplyRef(m))}
-                      className="text-xs bg-white border border-ink rounded-full w-7 h-7 flex items-center justify-center hover:bg-sky"
+                      className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-sky text-sm leading-none"
                       title="Reply"
                       aria-label="Reply to message"
                     >↩️</button>
                     {mine && m.kind === "text" && (
                       <button
                         onClick={() => startEdit(m)}
-                        className="text-xs bg-white border border-ink rounded-full w-7 h-7 flex items-center justify-center hover:bg-mint"
+                        className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-mint text-sm leading-none"
                         title="Edit"
                         aria-label="Edit message"
                       >✏️</button>
@@ -164,7 +166,7 @@ export default function MessageList({
                     {mine && (
                       <button
                         onClick={() => handleDelete(m)}
-                        className="text-xs bg-white border border-ink rounded-full w-7 h-7 flex items-center justify-center hover:bg-red-200"
+                        className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-200 text-sm leading-none"
                         title="Delete"
                         aria-label="Delete message"
                       >🗑️</button>
@@ -173,7 +175,7 @@ export default function MessageList({
                 )}
 
                 <div
-                  className={`${mine ? "bubble-me" : "bubble-them"} px-3 py-2 break-words flex-1`}
+                  className={`${mine ? "bubble-me" : "bubble-them"} px-3 py-2 break-words`}
                   style={!mine ? { borderColor: accent, boxShadow: `0 3px 0 0 ${accent}` } : undefined}
                 >
                   {editing ? (
