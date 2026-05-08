@@ -9,19 +9,25 @@ export default function Sidebar({
   conversations,
   activeId,
   myUserId,
+  myUsername,
+  myAvatarSeed,
   unreadByConv,
   onSelect,
   onNewGroup,
   onNewDM,
+  onOpenProfile,
   onLogout,
 }: {
   conversations: Conversation[];
   activeId: string;
   myUserId: string;
+  myUsername: string;
+  myAvatarSeed: string;
   unreadByConv: Record<string, number>;
   onSelect: (c: Conversation) => void;
   onNewGroup: () => void;
   onNewDM: () => void;
+  onOpenProfile: () => void;
   onLogout: () => void;
 }) {
   const groups = conversations.filter((c) => c.kind === "group");
@@ -136,8 +142,22 @@ export default function Sidebar({
         </div>
       </div>
 
-      <div className="border-t-2 border-ink p-2">
-        <button onClick={onLogout} className="btn-ghost w-full !py-1 text-sm">Leave</button>
+      <div className="border-t-2 border-ink p-2 flex items-center gap-2">
+        <button
+          onClick={onOpenProfile}
+          className="flex items-center gap-2 flex-1 min-w-0 px-1 py-1 rounded-lg hover:bg-cloud transition text-left"
+          title="Edit your profile"
+        >
+          <div className="avatar-ring shrink-0" style={{ width: 32, height: 32, borderColor: colorForUser(myUserId) }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={avatarUrlForUser(myAvatarSeed)} alt="" width={32} height={32} />
+          </div>
+          <div className="leading-tight min-w-0">
+            <div className="text-[11px] opacity-60 font-bold uppercase tracking-wider">You</div>
+            <div className="text-sm font-bold truncate">{myUsername}</div>
+          </div>
+        </button>
+        <button onClick={onLogout} className="btn-ghost !py-1 !px-2 text-xs shrink-0">Leave</button>
       </div>
     </aside>
   );

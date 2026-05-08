@@ -113,7 +113,7 @@ export default function MessageInput({
       )}
 
       {showEmoji && (
-        <div className="absolute bottom-20 left-3 z-20">
+        <div className="absolute bottom-20 left-3 z-[60]">
           <EmojiPicker
             onEmojiClick={(d) => {
               setText((t) => t + d.emoji);
@@ -125,7 +125,7 @@ export default function MessageInput({
         </div>
       )}
       {showGif && (
-        <div className="absolute bottom-20 left-3 z-20 solid-card">
+        <div className="absolute bottom-20 left-3 z-[60] solid-card">
           <GifPicker
             onSelect={(url) => {
               onSend({ kind: "gif", gifUrl: url });

@@ -20,10 +20,12 @@ export default function ChatRoom({
   userId,
   username,
   conversation,
+  myAvatarSeed,
 }: {
   userId: string;
   username: string;
   conversation: Conversation;
+  myAvatarSeed: string;
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [online, setOnline] = useState<PresenceUser[]>([]);
@@ -386,17 +388,20 @@ export default function ChatRoom({
 
           <div className="flex items-center gap-2">
             <div className="hidden sm:flex -space-x-2">
-              {online.slice(0, 5).map((u) => (
-                <div
-                  key={u.userId}
-                  className="avatar-ring"
-                  style={{ width: 30, height: 30, borderColor: colorForUser(u.userId) }}
-                  title={u.username}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={avatarUrlForUser(u.username)} alt={u.username} width={30} height={30} />
-                </div>
-              ))}
+              {online.slice(0, 5).map((u) => {
+                const seed = u.userId === userId ? myAvatarSeed : u.username;
+                return (
+                  <div
+                    key={u.userId}
+                    className="avatar-ring"
+                    style={{ width: 30, height: 30, borderColor: colorForUser(u.userId) }}
+                    title={u.username}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={avatarUrlForUser(seed)} alt={u.username} width={30} height={30} />
+                  </div>
+                );
+              })}
               {online.length > 5 && (
                 <div className="avatar-ring flex items-center justify-center text-[10px] font-bold" style={{ width: 30, height: 30 }}>
                   +{online.length - 5}
@@ -418,6 +423,7 @@ export default function ChatRoom({
         <MessageList
           messages={messages}
           myUserId={userId}
+          myAvatarSeed={myAvatarSeed}
           typingUsers={typingNames}
           reads={reads}
           onlineUsers={online}

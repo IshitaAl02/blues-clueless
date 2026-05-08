@@ -6,7 +6,9 @@ import { supabase } from "@/lib/supabase";
 import ChatRoom from "@/components/ChatRoom";
 import Sidebar from "@/components/Sidebar";
 import { NewGroupModal, NewDMModal } from "@/components/ConversationModals";
+import ProfileModal from "@/components/ProfileModal";
 import { Conversation, LOBBY, listConversations } from "@/lib/conversations";
+import { getSavedSeed, onSeedChange } from "@/lib/profile";
 
 export default function ChatPage() {
   const router = useRouter();
@@ -18,6 +20,8 @@ export default function ChatPage() {
   const [active, setActive] = useState<Conversation>(LOBBY);
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [showNewDM, setShowNewDM] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [myAvatarSeed, setMyAvatarSeed] = useState<string>("");
   const [unreadByConv, setUnreadByConv] = useState<Record<string, number>>({});
   const activeIdRef = useRef(active.id);
   useEffect(() => { activeIdRef.current = active.id; }, [active.id]);
@@ -57,6 +61,15 @@ export default function ChatPage() {
   }, [userId]);
 
   useEffect(() => { refreshConversations(); }, [refreshConversations]);
+
+  // Initialize avatar seed once we know the username + listen for live updates.
+  useEffect(() => {
+    if (!username) return;
+    setMyAvatarSeed(getSavedSeed() ?? username);
+    return onSeedChange(() => {
+      setMyAvatarSeed(getSavedSeed() ?? username);
+    });
+  }, [username]);
 
   // One global channel listens for INSERTs on the messages table.
   // RLS on the messages table only lets us see rows for conversations we're
@@ -124,10 +137,13 @@ export default function ChatPage() {
           conversations={conversations}
           activeId={active.id}
           myUserId={userId}
+          myUsername={username}
+          myAvatarSeed={myAvatarSeed || username}
           unreadByConv={unreadByConv}
           onSelect={selectConversation}
           onNewGroup={() => setShowNewGroup(true)}
           onNewDM={() => setShowNewDM(true)}
+          onOpenProfile={() => setShowProfile(true)}
           onLogout={handleLogout}
         />
 
@@ -136,6 +152,7 @@ export default function ChatPage() {
           userId={userId}
           username={username}
           conversation={active}
+          myAvatarSeed={myAvatarSeed || username}
         />
       </div>
 
@@ -150,6 +167,12 @@ export default function ChatPage() {
         onClose={() => setShowNewDM(false)}
         onCreated={handleCreated}
         myUserId={userId}
+      />
+      <ProfileModal
+        open={showProfile}
+        onClose={() => setShowProfile(false)}
+        username={username}
+        userId={userId}
       />
     </main>
   );

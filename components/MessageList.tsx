@@ -43,6 +43,7 @@ function SeenBy({
 export default function MessageList({
   messages,
   myUserId,
+  myAvatarSeed,
   typingUsers,
   reads,
   onlineUsers,
@@ -53,6 +54,7 @@ export default function MessageList({
 }: {
   messages: ChatMessage[];
   myUserId: string;
+  myAvatarSeed: string;
   typingUsers: string[];
   reads: Record<string, ReadReceipt>;
   onlineUsers: PresenceUser[];
@@ -130,6 +132,7 @@ export default function MessageList({
                 {showHeader ? <Avatar seed={m.username} /> : null}
               </div>
             )}
+            {/* avatar for own messages on the right side is rendered after the bubble below */}
 
             <div className="max-w-[75%] group">
               {showHeader && (
@@ -273,7 +276,7 @@ export default function MessageList({
 
             {mine && (
               <div className="w-9">
-                {showHeader ? <Avatar seed={m.username} /> : null}
+                {showHeader ? <Avatar seed={myAvatarSeed} /> : null}
               </div>
             )}
           </div>
