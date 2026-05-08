@@ -1,9 +1,39 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
+import Cropper, { Area } from "react-easy-crop";
 
-const FRAME = 280; // visible circular preview size (px)
 const OUTPUT = 256; // exported image size (px)
+
+async function getCroppedDataUrl(src: string, area: Area): Promise<string> {
+  // Load source into an off-screen Image
+  const img = new Image();
+  img.crossOrigin = "anonymous";
+  img.src = src;
+  await new Promise<void>((resolve, reject) => {
+    img.onload = () => resolve();
+    img.onerror = () => reject(new Error("Image failed to load"));
+  });
+
+  const canvas = document.createElement("canvas");
+  canvas.width = OUTPUT;
+  canvas.height = OUTPUT;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas 2D context not available");
+
+  ctx.drawImage(
+    img,
+    area.x,
+    area.y,
+    area.width,
+    area.height,
+    0,
+    0,
+    OUTPUT,
+    OUTPUT,
+  );
+  return canvas.toDataURL("image/jpeg", 0.85);
+}
 
 export default function AvatarCropper({
   src,
@@ -14,116 +44,48 @@ export default function AvatarCropper({
   onCancel: () => void;
   onApply: (dataUrl: string) => void;
 }) {
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const [imgSize, setImgSize] = useState({ w: 0, h: 0 });
-  const imgRef = useRef<HTMLImageElement>(null);
-  const dragging = useRef(false);
-  const lastPos = useRef({ x: 0, y: 0 });
+  const [croppedArea, setCroppedArea] = useState<Area | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  // Reset state when src changes
-  useEffect(() => {
-    setZoom(1);
-    setOffset({ x: 0, y: 0 });
-  }, [src]);
+  const onCropComplete = useCallback((_: Area, areaPixels: Area) => {
+    setCroppedArea(areaPixels);
+  }, []);
 
-  function onLoad() {
-    if (!imgRef.current) return;
-    setImgSize({
-      w: imgRef.current.naturalWidth,
-      h: imgRef.current.naturalHeight,
-    });
+  async function apply() {
+    if (!croppedArea) return;
+    setBusy(true);
+    try {
+      const data = await getCroppedDataUrl(src, croppedArea);
+      onApply(data);
+    } catch (e) {
+      alert("Couldn't crop the image.");
+    } finally {
+      setBusy(false);
+    }
   }
-
-  // "cover" scale to make the smaller dimension fill the frame
-  const baseScale =
-    imgSize.w && imgSize.h
-      ? Math.max(FRAME / imgSize.w, FRAME / imgSize.h)
-      : 1;
-  const renderedW = imgSize.w * baseScale * zoom;
-  const renderedH = imgSize.h * baseScale * zoom;
-
-  function clampOffset(o: { x: number; y: number }, w: number, h: number) {
-    // Don't let user drag past the edge — keep image covering the frame
-    const maxX = Math.max(0, (w - FRAME) / 2);
-    const maxY = Math.max(0, (h - FRAME) / 2);
-    return {
-      x: Math.max(-maxX, Math.min(maxX, o.x)),
-      y: Math.max(-maxY, Math.min(maxY, o.y)),
-    };
-  }
-
-  function onPointerDown(e: React.PointerEvent) {
-    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
-    dragging.current = true;
-    lastPos.current = { x: e.clientX, y: e.clientY };
-  }
-  function onPointerMove(e: React.PointerEvent) {
-    if (!dragging.current) return;
-    const dx = e.clientX - lastPos.current.x;
-    const dy = e.clientY - lastPos.current.y;
-    lastPos.current = { x: e.clientX, y: e.clientY };
-    setOffset((prev) => clampOffset({ x: prev.x + dx, y: prev.y + dy }, renderedW, renderedH));
-  }
-  function onPointerUp(e: React.PointerEvent) {
-    (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
-    dragging.current = false;
-  }
-
-  function apply() {
-    const img = imgRef.current;
-    if (!img) return;
-
-    const canvas = document.createElement("canvas");
-    canvas.width = OUTPUT;
-    canvas.height = OUTPUT;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    // Map the visible square back onto the source image
-    const totalScale = baseScale * zoom;
-    const displayLeft = FRAME / 2 - renderedW / 2 + offset.x;
-    const displayTop = FRAME / 2 - renderedH / 2 + offset.y;
-    const sx = -displayLeft / totalScale;
-    const sy = -displayTop / totalScale;
-    const sSize = FRAME / totalScale;
-
-    ctx.drawImage(img, sx, sy, sSize, sSize, 0, 0, OUTPUT, OUTPUT);
-    onApply(canvas.toDataURL("image/jpeg", 0.85));
-  }
-
-  // Re-clamp whenever zoom changes
-  useEffect(() => {
-    setOffset((o) => clampOffset(o, renderedW, renderedH));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [zoom, imgSize.w, imgSize.h]);
 
   return (
     <div>
       <div
-        className="mx-auto rounded-full overflow-hidden border-2 border-ink relative select-none touch-none"
-        style={{ width: FRAME, height: FRAME, cursor: dragging.current ? "grabbing" : "grab" }}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
+        className="relative mx-auto rounded-full overflow-hidden border-2 border-ink"
+        style={{ width: 280, height: 280, background: "#000" }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          ref={imgRef}
-          src={src}
-          onLoad={onLoad}
-          alt=""
-          draggable={false}
-          style={{
-            position: "absolute",
-            width: renderedW,
-            height: renderedH,
-            left: FRAME / 2 - renderedW / 2 + offset.x,
-            top: FRAME / 2 - renderedH / 2 + offset.y,
-            userSelect: "none",
-            pointerEvents: "none",
-          }}
+        <Cropper
+          image={src}
+          crop={crop}
+          zoom={zoom}
+          aspect={1}
+          cropShape="round"
+          showGrid={false}
+          minZoom={1}
+          maxZoom={4}
+          zoomSpeed={0.5}
+          onCropChange={setCrop}
+          onZoomChange={setZoom}
+          onCropComplete={onCropComplete}
+          objectFit="cover"
         />
       </div>
 
@@ -132,7 +94,7 @@ export default function AvatarCropper({
         <input
           type="range"
           min="1"
-          max="3"
+          max="4"
           step="0.02"
           value={zoom}
           onChange={(e) => setZoom(parseFloat(e.target.value))}
@@ -141,12 +103,14 @@ export default function AvatarCropper({
       </div>
 
       <p className="text-[11px] opacity-60 italic mt-2 text-center">
-        Drag the image to position it, slide to zoom.
+        Drag to position, slide or pinch to zoom.
       </p>
 
       <div className="flex justify-end gap-2 mt-3">
-        <button className="btn-ghost" onClick={onCancel}>Back</button>
-        <button className="btn-primary" onClick={apply}>Apply</button>
+        <button className="btn-ghost" onClick={onCancel} disabled={busy}>Back</button>
+        <button className="btn-primary" onClick={apply} disabled={busy || !croppedArea}>
+          {busy ? "..." : "Apply"}
+        </button>
       </div>
     </div>
   );
