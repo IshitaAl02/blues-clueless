@@ -2,7 +2,8 @@
 // the chosen username so users only ever see/type their username.
 
 export const SECRET_KEY = "8090";
-const EMAIL_DOMAIN = "bluesclueless.chat";
+// IANA-reserved domain — Supabase always accepts it as a valid email format.
+const EMAIL_DOMAIN = "example.com";
 
 export function normalizeUsername(raw: string): string {
   return raw.trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
