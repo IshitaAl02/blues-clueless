@@ -180,8 +180,8 @@ export default function ChatRoom({
         if (!document.hasFocus()) setUnread((u) => u + 1);
         const preview =
           msg.kind === "text" ? (msg.text ?? "")
-          : msg.kind === "image" ? "📷 sent an image"
-          : "🎬 sent a GIF";
+          : msg.kind === "image" ? (msg.text ? `📷 ${msg.text}` : "📷 sent an image")
+          : (msg.text ? `🎬 ${msg.text}` : "🎬 sent a GIF");
         const trimmed = preview.length > 80 ? preview.slice(0, 80) + "…" : preview;
         pushToast({ id: msg.id, username: msg.username, userId: msg.userId, text: trimmed });
         fireDesktopNotif(`${msg.username} • Blue's Clueless`, trimmed);

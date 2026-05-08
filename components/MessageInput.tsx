@@ -11,6 +11,11 @@ const EmojiPicker = dynamic(() => import("emoji-picker-react"), { ssr: false });
 
 type Outbound = Omit<ChatMessage, "id" | "ts" | "userId" | "username">;
 
+type Pending =
+  | { kind: "image"; imageData: string }
+  | { kind: "gif"; gifUrl: string }
+  | null;
+
 export default function MessageInput({
   onSend,
   onTyping,
@@ -26,6 +31,7 @@ export default function MessageInput({
   const [showEmoji, setShowEmoji] = useState(false);
   const [showGif, setShowGif] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [pending, setPending] = useState<Pending>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const popRef = useRef<HTMLDivElement>(null);
 
@@ -40,14 +46,22 @@ export default function MessageInput({
     return () => document.removeEventListener("mousedown", onClick);
   }, [showEmoji, showGif]);
 
-  function sendText() {
+  function send() {
     const t = text.trim();
-    if (!t) return;
-    onSend({ kind: "text", text: t });
+    if (!pending && !t) return;
+
+    if (pending?.kind === "image") {
+      onSend({ kind: "image", imageData: pending.imageData, text: t || undefined });
+    } else if (pending?.kind === "gif") {
+      onSend({ kind: "gif", gifUrl: pending.gifUrl, text: t || undefined });
+    } else if (t) {
+      onSend({ kind: "text", text: t });
+    }
     setText("");
+    setPending(null);
   }
 
-  async function sendImageFile(f: File) {
+  async function attachImageFile(f: File) {
     if (!f.type.startsWith("image/")) {
       alert("Only images please.");
       return;
@@ -55,7 +69,7 @@ export default function MessageInput({
     setBusy(true);
     try {
       const dataUrl = await fileToCompressedDataUrl(f);
-      onSend({ kind: "image", imageData: dataUrl });
+      setPending({ kind: "image", imageData: dataUrl });
     } catch {
       alert("Couldn't read that image.");
     } finally {
@@ -66,7 +80,7 @@ export default function MessageInput({
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     e.target.value = "";
-    if (f) await sendImageFile(f);
+    if (f) await attachImageFile(f);
   }
 
   async function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
@@ -78,7 +92,7 @@ export default function MessageInput({
         const f = it.getAsFile();
         if (f) {
           e.preventDefault();
-          await sendImageFile(f);
+          await attachImageFile(f);
           return;
         }
       }
@@ -86,13 +100,15 @@ export default function MessageInput({
     // No image in clipboard — let the default paste happen (text)
   }
 
+  const canSend = !!pending || !!text.trim();
+
   return (
     <div className="border-t-2 border-ink bg-white/80 backdrop-blur p-3 relative" ref={popRef}>
       {replyingTo && (
         <div
           className="mb-2 flex items-center justify-between gap-2 rounded-md px-2 py-1.5"
           style={{
-            background: "#F2FBFC",
+            background: "var(--reply-bg)",
             borderLeft: `4px solid ${colorForUser(replyingTo.userId)}`,
           }}
         >
@@ -105,9 +121,33 @@ export default function MessageInput({
           <button
             type="button"
             onClick={onCancelReply}
-            className="text-ink rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-200 border border-ink"
+            className="rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-200 border border-ink"
             title="Cancel reply"
             aria-label="Cancel reply"
+          >✕</button>
+        </div>
+      )}
+
+      {pending && (
+        <div className="mb-2 flex items-start gap-2 rounded-md p-2 border-2 border-ink" style={{ background: "var(--reply-bg)" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={pending.kind === "image" ? pending.imageData : pending.gifUrl}
+            alt="attachment preview"
+            className="max-h-28 rounded-md border border-ink"
+          />
+          <div className="flex-1 text-xs">
+            <div className="font-bold mb-0.5">
+              {pending.kind === "image" ? "📷 Image attached" : "🎬 GIF attached"}
+            </div>
+            <div className="opacity-70 italic">Add a caption (optional) and hit Send.</div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setPending(null)}
+            className="rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-200 border border-ink shrink-0"
+            title="Remove attachment"
+            aria-label="Remove attachment"
           >✕</button>
         </div>
       )}
@@ -128,7 +168,7 @@ export default function MessageInput({
         <div className="absolute bottom-20 left-3 z-[60] solid-card">
           <GifPicker
             onSelect={(url) => {
-              onSend({ kind: "gif", gifUrl: url });
+              setPending({ kind: "gif", gifUrl: url });
               setShowGif(false);
             }}
           />
@@ -165,21 +205,21 @@ export default function MessageInput({
         <textarea
           className="field flex-1 resize-none"
           rows={1}
-          placeholder="Got a clue? Type it (or paste an image)…"
+          placeholder={pending ? "Add a caption…" : "Got a clue? Type it (or paste an image)…"}
           value={text}
           onChange={(e) => { setText(e.target.value); onTyping(); }}
           onPaste={handlePaste}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
-              sendText();
-            } else if (e.key === "Escape" && replyingTo) {
-              e.preventDefault();
-              onCancelReply();
+              send();
+            } else if (e.key === "Escape") {
+              if (pending) { e.preventDefault(); setPending(null); }
+              else if (replyingTo) { e.preventDefault(); onCancelReply(); }
             }
           }}
         />
-        <button className="btn-primary" onClick={sendText} disabled={!text.trim() || busy}>
+        <button className="btn-primary" onClick={send} disabled={!canSend || busy}>
           Send
         </button>
       </div>

@@ -247,12 +247,18 @@ export default function MessageList({
                       )}
                       {m.kind === "text" && <span>{m.text}</span>}
                       {m.kind === "image" && m.imageData && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={m.imageData} alt="shared" className="rounded-lg max-h-72" />
+                        <>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={m.imageData} alt="shared" className="rounded-lg max-h-72" />
+                          {m.text && <div className="mt-1 text-sm break-words">{m.text}</div>}
+                        </>
                       )}
                       {m.kind === "gif" && m.gifUrl && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={m.gifUrl} alt="gif" className="rounded-lg max-h-60" />
+                        <>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={m.gifUrl} alt="gif" className="rounded-lg max-h-60" />
+                          {m.text && <div className="mt-1 text-sm break-words">{m.text}</div>}
+                        </>
                       )}
                       {m.edited && <span className="text-[10px] opacity-60 ml-1 italic">(edited)</span>}
                     </>
