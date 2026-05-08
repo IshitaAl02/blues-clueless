@@ -172,6 +172,10 @@ h1, h2, h3, .font-display {
   100% { background-color: rgba(93,248,216,0); }
 }
 
+/* When sitting on a bright accent (mint/sky/cyan), force the dark navy text
+   regardless of theme — the accent bg stays bright in both modes. */
+.on-accent { color: #093C5D !important; }
+
 /* Decorative chips */
 .chip {
   display: inline-flex;

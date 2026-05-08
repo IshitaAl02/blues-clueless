@@ -138,11 +138,11 @@ export default function MessageList({
               {showHeader && (
                 <div className={`text-xs font-bold mb-1 ${mine ? "text-right mr-1" : "ml-1"}`}>
                   <span
-                    className="px-2 py-0.5 rounded-full"
+                    className={`px-2 py-0.5 rounded-full ${mine ? "on-accent" : ""}`}
                     style={{
                       background: mine ? "#5DF8D8" : `${accent}22`,
                       border: `1.5px solid ${mine ? "#093C5D" : accent}`,
-                      color: "#093C5D",
+                      color: mine ? undefined : accent,
                     }}
                   >
                     {m.username}{mine && " (you)"}
@@ -220,7 +220,7 @@ export default function MessageList({
                           onClick={() => scrollToMessage(m.replyTo!.id)}
                           className="block w-full text-left mb-1 rounded-md px-2 py-1 text-[11px] hover:brightness-95 transition"
                           style={{
-                            background: mine ? "rgba(255,255,255,0.18)" : "#F2FBFC",
+                            background: mine ? "rgba(255,255,255,0.18)" : "var(--reply-bg)",
                             borderLeft: `3px solid ${colorForUser(m.replyTo.userId)}`,
                           }}
                           title="Jump to original message"
@@ -256,7 +256,7 @@ export default function MessageList({
                       <button
                         key={emo}
                         onClick={() => onReact(m.id, emo)}
-                        className={`flex items-center gap-1 rounded-full px-1.5 py-0.5 text-xs border transition ${reactedByMe ? "bg-mint border-ink font-bold" : "bg-white border-ink/40 hover:border-ink"}`}
+                        className={`flex items-center gap-1 rounded-full px-1.5 py-0.5 text-xs border transition ${reactedByMe ? "bg-mint border-ink font-bold on-accent" : "bg-white border-ink/40 hover:border-ink on-accent"}`}
                         title={users.map((u) => u.username).join(", ")}
                       >
                         <span>{emo}</span>

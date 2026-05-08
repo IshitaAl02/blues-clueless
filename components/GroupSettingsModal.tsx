@@ -129,7 +129,7 @@ export default function GroupSettingsModal({
             return (
               <label
                 key={u.user_id}
-                className={`flex items-center gap-2 p-2 cursor-pointer ${checked ? "bg-mint/40" : "hover:bg-cloud"}`}
+                className={`flex items-center gap-2 p-2 cursor-pointer ${checked ? "bg-mint/40 on-accent" : "hover:bg-cloud"}`}
               >
                 <input type="checkbox" checked={checked} onChange={() => togglePick(u.user_id)} />
                 <div className="avatar-ring" style={{ width: 24, height: 24, borderColor: colorForUser(u.user_id) }}>

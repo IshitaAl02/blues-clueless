@@ -65,7 +65,7 @@ export default function Sidebar({
     return (
       <button
         onClick={() => onSelect(c)}
-        className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg text-left transition ${active ? "bg-mint/60 font-bold" : "hover:bg-cloud"}`}
+        className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg text-left transition ${active ? "bg-mint font-bold on-accent" : "hover:bg-cloud"}`}
       >
         {c.kind === "lobby" ? (
           <PawLogo size={28} />
@@ -92,7 +92,7 @@ export default function Sidebar({
 
   return (
     <aside className="w-64 shrink-0 glass-card flex flex-col h-full overflow-hidden">
-      <div className="px-3 py-3 border-b-2 border-ink flex items-center gap-2 bg-gradient-to-br from-mint to-sky relative">
+      <div className="px-3 py-3 border-b-2 border-ink flex items-center gap-2 bg-gradient-to-br from-mint to-sky relative on-accent">
         <PawLogo size={32} />
         <div className="leading-tight flex-1 min-w-0">
           <div className="font-display text-lg truncate">Blue's Clueless</div>

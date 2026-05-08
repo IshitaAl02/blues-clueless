@@ -82,7 +82,7 @@ export default function ProfileModal({
         <button
           onClick={() => fileRef.current?.click()}
           disabled={busy}
-          className={`p-1.5 rounded-xl border-2 transition flex flex-col items-center justify-center aspect-square ${isCustom ? "border-ink bg-mint" : "border-dashed border-ink/50 hover:border-ink"}`}
+          className={`p-1.5 rounded-xl border-2 transition flex flex-col items-center justify-center aspect-square ${isCustom ? "border-ink bg-mint on-accent" : "border-dashed border-ink/50 hover:border-ink"}`}
           title="Upload your own image"
         >
           {customUploaded ? (
@@ -109,7 +109,7 @@ export default function ProfileModal({
             <button
               key={seed}
               onClick={() => setPicked(seed)}
-              className={`p-1.5 rounded-xl border-2 transition aspect-square ${active ? "border-ink bg-mint" : "border-ink/30 hover:border-ink"}`}
+              className={`p-1.5 rounded-xl border-2 transition aspect-square ${active ? "border-ink bg-mint on-accent" : "border-ink/30 hover:border-ink"}`}
               title={`Avatar ${seed}`}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}

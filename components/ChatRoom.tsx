@@ -354,7 +354,7 @@ export default function ChatRoom({
       <Toasts toasts={toasts} onDismiss={dismissToast} />
 
       <header
-        className="flex items-center justify-between px-4 py-3 border-b-2 border-ink"
+        className="flex items-center justify-between px-4 py-3 border-b-2 border-ink on-accent"
         style={{ background: "linear-gradient(135deg, #5DF8D8 0%, #6FD1D7 100%)" }}
       >
           <div className="flex items-center gap-3 min-w-0">
