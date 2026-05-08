@@ -83,14 +83,19 @@ export default function ChatRoom({ userId, username }: { userId: string; usernam
   function fireDesktopNotif(title: string, body: string) {
     if (!notifEnabledRef.current || typeof Notification === "undefined") return;
     if (Notification.permission !== "granted") return;
-    if (document.hasFocus()) return; // don't bug user when they're already looking
+    // Only fire when tab is not visible (background tab, minimized window, etc.).
+    // Use visibilityState — more reliable than document.hasFocus() across browsers.
+    if (typeof document !== "undefined" && document.visibilityState === "visible") return;
     try {
       const n = new Notification(title, {
         body,
         icon: "/favicon.ico",
-        tag: "blues-clueless",
+        // No tag — let each message produce its own popup instead of replacing.
       });
-      n.onclick = () => { window.focus(); n.close(); };
+      n.onclick = () => {
+        window.focus();
+        n.close();
+      };
     } catch { /* ignore */ }
   }
 
