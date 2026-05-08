@@ -150,7 +150,7 @@ export default function MessageList({
               <div className="relative">
                 {!editing && (
                   <div
-                    className={`absolute -top-5 z-10 flex items-center gap-0.5 bg-white border-2 border-ink rounded-full px-1.5 py-0.5 shadow-popSm opacity-0 group-hover:opacity-100 transition-opacity ${mine ? "right-2" : "left-2"}`}
+                    className={`absolute bottom-full mb-1.5 z-10 flex items-center gap-0.5 bg-white border-2 border-ink rounded-full px-1.5 py-0.5 shadow-popSm opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto ${mine ? "right-0" : "left-0"}`}
                   >
                     {QUICK_REACTIONS.map((emo) => (
                       <button
