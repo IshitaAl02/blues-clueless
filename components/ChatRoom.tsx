@@ -46,6 +46,15 @@ export default function ChatRoom({
 
   const convLabel = displayName(conversation, userId);
 
+  const mentionCandidates =
+    conversation.kind === "lobby"
+      ? Object.values(profiles)
+          .filter((p) => p.id !== userId)
+          .map((p) => ({ userId: p.id, username: p.username }))
+      : conversation.members
+          .filter((m) => m.user_id !== userId)
+          .map((m) => ({ userId: m.user_id, username: m.username }));
+
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const typingSentAt = useRef(0);
   const lastReadSentAt = useRef(0);
@@ -471,6 +480,7 @@ export default function ChatRoom({
           onTyping={onTyping}
           replyingTo={replyingTo}
           onCancelReply={() => setReplyingTo(null)}
+          mentionCandidates={mentionCandidates}
         />
     </div>
   );

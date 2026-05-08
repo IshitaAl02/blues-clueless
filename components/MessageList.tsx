@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ChatMessage, PresenceUser, ReadReceipt, ReplyRef } from "@/lib/types";
 import { buildReplyRef } from "@/lib/reply";
 import { ProfileMap, seedFor } from "@/lib/profilesCache";
+import { RenderTextWithMentions } from "./Mentions";
 import { avatarUrlForUser, colorForUser } from "@/lib/avatar";
 
 function Avatar({ seed, size = 36 }: { seed: string; size?: number }) {
@@ -250,19 +251,29 @@ export default function MessageList({
                           </span>
                         </button>
                       )}
-                      {m.kind === "text" && <span>{m.text}</span>}
+                      {m.kind === "text" && m.text && (
+                        <span><RenderTextWithMentions text={m.text} mine={mine} /></span>
+                      )}
                       {m.kind === "image" && m.imageData && (
                         <>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={m.imageData} alt="shared" className="rounded-lg max-h-72" />
-                          {m.text && <div className="mt-1 text-sm break-words">{m.text}</div>}
+                          {m.text && (
+                            <div className="mt-1 text-sm break-words">
+                              <RenderTextWithMentions text={m.text} mine={mine} />
+                            </div>
+                          )}
                         </>
                       )}
                       {m.kind === "gif" && m.gifUrl && (
                         <>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={m.gifUrl} alt="gif" className="rounded-lg max-h-60" />
-                          {m.text && <div className="mt-1 text-sm break-words">{m.text}</div>}
+                          {m.text && (
+                            <div className="mt-1 text-sm break-words">
+                              <RenderTextWithMentions text={m.text} mine={mine} />
+                            </div>
+                          )}
                         </>
                       )}
                       {m.edited && <span className="text-[10px] opacity-60 ml-1 italic">(edited)</span>}

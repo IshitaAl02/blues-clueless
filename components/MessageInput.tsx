@@ -5,7 +5,8 @@ import dynamic from "next/dynamic";
 import GifPicker from "./GifPicker";
 import { fileToCompressedDataUrl } from "@/lib/image";
 import type { ChatMessage, ReplyRef } from "@/lib/types";
-import { colorForUser } from "@/lib/avatar";
+import { avatarUrlForUser, colorForUser } from "@/lib/avatar";
+import type { MentionCandidate } from "./Mentions";
 
 const EmojiPicker = dynamic(() => import("emoji-picker-react"), { ssr: false });
 
@@ -21,19 +22,59 @@ export default function MessageInput({
   onTyping,
   replyingTo,
   onCancelReply,
+  mentionCandidates,
 }: {
   onSend: (m: Outbound) => void;
   onTyping: () => void;
   replyingTo: ReplyRef | null;
   onCancelReply: () => void;
+  mentionCandidates: MentionCandidate[];
 }) {
   const [text, setText] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
   const [showGif, setShowGif] = useState(false);
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState<Pending>(null);
+  const [mention, setMention] = useState<{ start: number; query: string } | null>(null);
+  const [mentionIdx, setMentionIdx] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
   const popRef = useRef<HTMLDivElement>(null);
+  const taRef = useRef<HTMLTextAreaElement>(null);
+
+  const filteredMentions = mention
+    ? mentionCandidates
+        .filter((c) => c.username.toLowerCase().startsWith(mention.query.toLowerCase()))
+        .slice(0, 6)
+    : [];
+
+  function updateMentionFromCaret(value: string, caret: number) {
+    const before = value.slice(0, caret);
+    // Match @<query> at end of text or after whitespace
+    const m = before.match(/(?:^|\s)@([a-z0-9_]{0,20})$/i);
+    if (m) {
+      setMention({ start: caret - m[1].length - 1, query: m[1] });
+      setMentionIdx(0);
+    } else {
+      setMention(null);
+    }
+  }
+
+  function insertMention(username: string) {
+    if (!mention) return;
+    const before = text.slice(0, mention.start);
+    const after = text.slice(mention.start + 1 + mention.query.length);
+    const newText = `${before}@${username} ${after}`;
+    setText(newText);
+    setMention(null);
+    // restore caret position right after the inserted mention
+    requestAnimationFrame(() => {
+      const ta = taRef.current;
+      if (!ta) return;
+      const pos = before.length + 1 + username.length + 1;
+      ta.focus();
+      ta.setSelectionRange(pos, pos);
+    });
+  }
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -175,6 +216,28 @@ export default function MessageInput({
         </div>
       )}
 
+      {mention && filteredMentions.length > 0 && (
+        <div className="absolute bottom-full mb-1 left-2 right-2 sm:left-3 sm:right-auto z-[55] solid-card max-w-xs p-1 max-h-60 overflow-y-auto">
+          <div className="text-[10px] uppercase tracking-wider opacity-60 px-2 py-1 font-bold">Mention</div>
+          {filteredMentions.map((c, i) => (
+            <button
+              key={c.userId}
+              onMouseDown={(e) => { e.preventDefault(); insertMention(c.username); }}
+              className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left ${i === mentionIdx ? "bg-mint on-accent" : "hover:bg-cloud"}`}
+            >
+              <div
+                className="avatar-ring shrink-0"
+                style={{ width: 24, height: 24, borderColor: colorForUser(c.userId) }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={avatarUrlForUser(c.username)} alt="" width={24} height={24} />
+              </div>
+              <span className="font-semibold text-sm">@{c.username}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="flex items-end gap-1 sm:gap-2">
         <button
           type="button"
@@ -203,13 +266,49 @@ export default function MessageInput({
           onChange={handleFile}
         />
         <textarea
+          ref={taRef}
           className="field flex-1 resize-none min-w-0 !px-2 sm:!px-4 !py-1.5 sm:!py-2.5"
           rows={1}
           placeholder={pending ? "Add a caption…" : "Got a clue? Type it (or paste an image)…"}
           value={text}
-          onChange={(e) => { setText(e.target.value); onTyping(); }}
+          onChange={(e) => {
+            setText(e.target.value);
+            onTyping();
+            updateMentionFromCaret(e.target.value, e.target.selectionStart ?? e.target.value.length);
+          }}
+          onKeyUp={(e) => {
+            const t = e.currentTarget;
+            updateMentionFromCaret(t.value, t.selectionStart ?? t.value.length);
+          }}
+          onClick={(e) => {
+            const t = e.currentTarget;
+            updateMentionFromCaret(t.value, t.selectionStart ?? t.value.length);
+          }}
           onPaste={handlePaste}
           onKeyDown={(e) => {
+            // Mention dropdown navigation
+            if (mention && filteredMentions.length > 0) {
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setMentionIdx((i) => Math.min(filteredMentions.length - 1, i + 1));
+                return;
+              }
+              if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setMentionIdx((i) => Math.max(0, i - 1));
+                return;
+              }
+              if (e.key === "Enter" || e.key === "Tab") {
+                e.preventDefault();
+                insertMention(filteredMentions[mentionIdx].username);
+                return;
+              }
+              if (e.key === "Escape") {
+                e.preventDefault();
+                setMention(null);
+                return;
+              }
+            }
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
               send();
