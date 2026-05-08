@@ -21,11 +21,13 @@ export default function ChatRoom({
   username,
   conversation,
   myAvatarSeed,
+  onOpenSettings,
 }: {
   userId: string;
   username: string;
   conversation: Conversation;
   myAvatarSeed: string;
+  onOpenSettings?: () => void;
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [online, setOnline] = useState<PresenceUser[]>([]);
@@ -417,6 +419,14 @@ export default function ChatRoom({
             >
               {notifEnabled ? "🔔" : "🔕"}
             </button>
+            {conversation.kind === "group" && onOpenSettings && (
+              <button
+                onClick={onOpenSettings}
+                className="btn-ghost !py-1 !px-3 text-sm"
+                title="Group settings"
+                aria-label="Group settings"
+              >⚙️</button>
+            )}
           </div>
         </header>
 

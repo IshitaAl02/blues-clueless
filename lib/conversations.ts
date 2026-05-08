@@ -106,6 +106,32 @@ export async function createGroup(
   return convId;
 }
 
+export async function renameGroup(convId: string, name: string): Promise<void> {
+  const { error } = await supabase
+    .from("conversations")
+    .update({ name })
+    .eq("id", convId);
+  if (error) throw error;
+}
+
+export async function addMembers(convId: string, userIds: string[]): Promise<void> {
+  if (userIds.length === 0) return;
+  const rows = userIds.map((uid) => ({ conversation_id: convId, user_id: uid }));
+  const { error } = await supabase
+    .from("conversation_members")
+    .insert(rows);
+  if (error) throw error;
+}
+
+export async function removeMember(convId: string, userId: string): Promise<void> {
+  const { error } = await supabase
+    .from("conversation_members")
+    .delete()
+    .eq("conversation_id", convId)
+    .eq("user_id", userId);
+  if (error) throw error;
+}
+
 // Find an existing DM between me and other, or create one.
 export async function findOrCreateDM(
   otherUserId: string,

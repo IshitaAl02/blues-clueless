@@ -7,6 +7,7 @@ import ChatRoom from "@/components/ChatRoom";
 import Sidebar from "@/components/Sidebar";
 import { NewGroupModal, NewDMModal } from "@/components/ConversationModals";
 import ProfileModal from "@/components/ProfileModal";
+import GroupSettingsModal from "@/components/GroupSettingsModal";
 import { Conversation, LOBBY, listConversations } from "@/lib/conversations";
 import { getSavedSeed, onSeedChange } from "@/lib/profile";
 
@@ -21,6 +22,7 @@ export default function ChatPage() {
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [showNewDM, setShowNewDM] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [showGroupSettings, setShowGroupSettings] = useState(false);
   const [myAvatarSeed, setMyAvatarSeed] = useState<string>("");
   const [unreadByConv, setUnreadByConv] = useState<Record<string, number>>({});
   const activeIdRef = useRef(active.id);
@@ -116,6 +118,16 @@ export default function ChatPage() {
     if (found) selectConversation(found);
   }
 
+  // Refresh after group settings changes — keep active in sync, drop it if I left
+  async function handleConversationChanged() {
+    if (!userId) return;
+    const list = await listConversations(userId);
+    setConversations(list);
+    const updated = list.find((c) => c.id === active.id);
+    if (updated) setActive(updated);
+    else setActive(LOBBY); // I was removed → fall back to lobby
+  }
+
   async function handleLogout() {
     await supabase.auth.signOut();
     router.replace("/login");
@@ -153,6 +165,7 @@ export default function ChatPage() {
           username={username}
           conversation={active}
           myAvatarSeed={myAvatarSeed || username}
+          onOpenSettings={active.kind === "group" ? () => setShowGroupSettings(true) : undefined}
         />
       </div>
 
@@ -173,6 +186,13 @@ export default function ChatPage() {
         onClose={() => setShowProfile(false)}
         username={username}
         userId={userId}
+      />
+      <GroupSettingsModal
+        open={showGroupSettings}
+        onClose={() => setShowGroupSettings(false)}
+        conversation={active.kind === "group" ? active : null}
+        myUserId={userId}
+        onChanged={handleConversationChanged}
       />
     </main>
   );
