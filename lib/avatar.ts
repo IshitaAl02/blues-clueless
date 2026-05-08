@@ -28,7 +28,10 @@ export function colorForUser(seed: string): string {
 }
 
 // DiceBear "fun-emoji" — colorful round cartoon faces. No API key needed.
+// If `seed` is already a data: URL or full http(s) URL, it's returned as-is —
+// that lets custom uploaded images flow through the same render paths.
 export function avatarUrlForUser(seed: string): string {
+  if (seed && (seed.startsWith("data:") || seed.startsWith("http"))) return seed;
   const safe = encodeURIComponent(seed || "anon");
   return `https://api.dicebear.com/7.x/fun-emoji/svg?seed=${safe}&backgroundType=gradientLinear&radius=50`;
 }

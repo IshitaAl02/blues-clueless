@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Conversation, displayName, LOBBY } from "@/lib/conversations";
 import { avatarUrlForUser, colorForUser } from "@/lib/avatar";
+import { getTheme, toggleTheme, type Theme } from "@/lib/theme";
 import { PawLogo } from "./Cartoons";
 
 export default function Sidebar({
@@ -35,6 +36,8 @@ export default function Sidebar({
 
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const [theme, setThemeState] = useState<Theme>("light");
+  useEffect(() => { setThemeState(getTheme()); }, []);
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -156,6 +159,14 @@ export default function Sidebar({
             <div className="text-[11px] opacity-60 font-bold uppercase tracking-wider">You</div>
             <div className="text-sm font-bold truncate">{myUsername}</div>
           </div>
+        </button>
+        <button
+          onClick={() => setThemeState(toggleTheme())}
+          className="btn-ghost !py-1 !px-2 text-base shrink-0"
+          title={theme === "dark" ? "Switch to light" : "Switch to dark"}
+          aria-label="Toggle theme"
+        >
+          {theme === "dark" ? "☀️" : "🌙"}
         </button>
         <button onClick={onLogout} className="btn-ghost !py-1 !px-2 text-xs shrink-0">Leave</button>
       </div>
