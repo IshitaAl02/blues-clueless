@@ -15,18 +15,21 @@ import MessageInput from "./MessageInput";
 import Toasts, { ToastItem } from "./Toasts";
 import { PawLogo } from "./Cartoons";
 import { avatarUrlForUser, colorForUser } from "@/lib/avatar";
+import { ProfileMap, seedFor } from "@/lib/profilesCache";
 
 export default function ChatRoom({
   userId,
   username,
   conversation,
   myAvatarSeed,
+  profiles,
   onOpenSettings,
 }: {
   userId: string;
   username: string;
   conversation: Conversation;
   myAvatarSeed: string;
+  profiles: ProfileMap;
   onOpenSettings?: () => void;
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -351,7 +354,7 @@ export default function ChatRoom({
 
   return (
     <div className="glass-card flex flex-col flex-1 h-full overflow-hidden">
-      <Toasts toasts={toasts} onDismiss={dismissToast} />
+      <Toasts toasts={toasts} onDismiss={dismissToast} profiles={profiles} />
 
       <header
         className="flex items-center justify-between px-4 py-3 border-b-2 border-ink on-accent"
@@ -360,10 +363,18 @@ export default function ChatRoom({
           <div className="flex items-center gap-3 min-w-0">
             <div className="relative shrink-0">
               {conversation.kind === "dm" ? (
-                <div className="avatar-ring" style={{ width: 38, height: 38 }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={avatarUrlForUser(convLabel)} alt="" width={38} height={38} />
-                </div>
+                (() => {
+                  const otherMember = conversation.members.find((m) => m.user_id !== userId);
+                  const dmSeed = otherMember
+                    ? seedFor(profiles, otherMember.user_id, otherMember.username)
+                    : convLabel;
+                  return (
+                    <div className="avatar-ring" style={{ width: 38, height: 38 }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={avatarUrlForUser(dmSeed)} alt="" width={38} height={38} />
+                    </div>
+                  );
+                })()
               ) : (
                 <PawLogo size={38} />
               )}
@@ -391,7 +402,9 @@ export default function ChatRoom({
           <div className="flex items-center gap-2">
             <div className="hidden sm:flex -space-x-2">
               {online.slice(0, 5).map((u) => {
-                const seed = u.userId === userId ? myAvatarSeed : u.username;
+                const seed = u.userId === userId
+                  ? myAvatarSeed
+                  : seedFor(profiles, u.userId, u.username);
                 return (
                   <div
                     key={u.userId}
@@ -434,6 +447,7 @@ export default function ChatRoom({
           messages={messages}
           myUserId={userId}
           myAvatarSeed={myAvatarSeed}
+          profiles={profiles}
           typingUsers={typingNames}
           reads={reads}
           onlineUsers={online}

@@ -51,9 +51,14 @@ export default function ProfileModal({
     }
   }
 
-  function commit() {
-    saveSeed(picked);
-    onClose();
+  async function commit() {
+    setBusy(true);
+    try {
+      await saveSeed(userId, picked);
+      onClose();
+    } finally {
+      setBusy(false);
+    }
   }
 
   const presets = [username, ...SEED_OPTIONS.map((s) => `${username}-${s}`)];

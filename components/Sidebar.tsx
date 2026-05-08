@@ -5,6 +5,7 @@ import { Conversation, displayName, LOBBY } from "@/lib/conversations";
 import { avatarUrlForUser, colorForUser } from "@/lib/avatar";
 import { getTheme, toggleTheme, type Theme } from "@/lib/theme";
 import { PawLogo } from "./Cartoons";
+import { ProfileMap, seedFor } from "@/lib/profilesCache";
 
 export default function Sidebar({
   conversations,
@@ -12,6 +13,7 @@ export default function Sidebar({
   myUserId,
   myUsername,
   myAvatarSeed,
+  profiles,
   unreadByConv,
   onSelect,
   onNewGroup,
@@ -24,6 +26,7 @@ export default function Sidebar({
   myUserId: string;
   myUsername: string;
   myAvatarSeed: string;
+  profiles: ProfileMap;
   unreadByConv: Record<string, number>;
   onSelect: (c: Conversation) => void;
   onNewGroup: () => void;
@@ -52,9 +55,10 @@ export default function Sidebar({
   function ConvRow({ c }: { c: Conversation }) {
     const active = c.id === activeId;
     const label = displayName(c, myUserId);
+    const otherUser = c.members.find((m) => m.user_id !== myUserId);
     const seed =
       c.kind === "dm"
-        ? c.members.find((m) => m.user_id !== myUserId)?.username ?? label
+        ? (otherUser ? seedFor(profiles, otherUser.user_id, otherUser.username) : label)
         : label;
     const accent =
       c.kind === "dm"

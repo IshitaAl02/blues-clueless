@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { avatarUrlForUser, colorForUser } from "@/lib/avatar";
+import { ProfileMap, seedFor } from "@/lib/profilesCache";
 
 export interface ToastItem {
   id: string;
@@ -13,9 +14,11 @@ export interface ToastItem {
 export default function Toasts({
   toasts,
   onDismiss,
+  profiles,
 }: {
   toasts: ToastItem[];
   onDismiss: (id: string) => void;
+  profiles: ProfileMap;
 }) {
   // Auto-dismiss each toast after 3.5s
   useEffect(() => {
@@ -38,7 +41,7 @@ export default function Toasts({
           >
             <div className="avatar-ring" style={{ width: 28, height: 28, borderColor: accent }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={avatarUrlForUser(t.username)} alt="" width={28} height={28} />
+              <img src={avatarUrlForUser(seedFor(profiles, t.userId, t.username))} alt="" width={28} height={28} />
             </div>
             <div className="text-sm">
               <span className="font-bold" style={{ color: "#093C5D" }}>{t.username}</span>

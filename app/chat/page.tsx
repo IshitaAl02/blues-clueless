@@ -9,7 +9,8 @@ import { NewGroupModal, NewDMModal } from "@/components/ConversationModals";
 import ProfileModal from "@/components/ProfileModal";
 import GroupSettingsModal from "@/components/GroupSettingsModal";
 import { Conversation, LOBBY, listConversations } from "@/lib/conversations";
-import { getSavedSeed, onSeedChange } from "@/lib/profile";
+import { getSavedSeed, onSeedChange, loadMySeedFromDb } from "@/lib/profile";
+import { fetchAllProfiles, ProfileMap, subscribeProfiles } from "@/lib/profilesCache";
 
 export default function ChatPage() {
   const router = useRouter();
@@ -24,6 +25,7 @@ export default function ChatPage() {
   const [showProfile, setShowProfile] = useState(false);
   const [showGroupSettings, setShowGroupSettings] = useState(false);
   const [myAvatarSeed, setMyAvatarSeed] = useState<string>("");
+  const [profiles, setProfiles] = useState<ProfileMap>({});
   const [unreadByConv, setUnreadByConv] = useState<Record<string, number>>({});
   const activeIdRef = useRef(active.id);
   useEffect(() => { activeIdRef.current = active.id; }, [active.id]);
@@ -64,14 +66,30 @@ export default function ChatPage() {
 
   useEffect(() => { refreshConversations(); }, [refreshConversations]);
 
-  // Initialize avatar seed once we know the username + listen for live updates.
+  // Initialize avatar seed: prefer DB, fall back to localStorage, fall back to username.
   useEffect(() => {
-    if (!username) return;
-    setMyAvatarSeed(getSavedSeed() ?? username);
+    if (!userId || !username) return;
+    (async () => {
+      const fromDb = await loadMySeedFromDb(userId);
+      setMyAvatarSeed(fromDb ?? getSavedSeed() ?? username);
+    })();
     return onSeedChange(() => {
       setMyAvatarSeed(getSavedSeed() ?? username);
     });
-  }, [username]);
+  }, [userId, username]);
+
+  // Load every profile + keep the cache in sync via realtime.
+  useEffect(() => {
+    if (!userId) return;
+    fetchAllProfiles().then(setProfiles);
+    return subscribeProfiles((entry) => {
+      setProfiles((prev) => ({ ...prev, [entry.id]: entry }));
+      // If it's me and someone else's tab/device updated our profile, mirror locally
+      if (entry.id === userId && entry.avatar_seed) {
+        setMyAvatarSeed(entry.avatar_seed);
+      }
+    });
+  }, [userId]);
 
   // One global channel listens for INSERTs on the messages table.
   // RLS on the messages table only lets us see rows for conversations we're
@@ -151,6 +169,7 @@ export default function ChatPage() {
           myUserId={userId}
           myUsername={username}
           myAvatarSeed={myAvatarSeed || username}
+          profiles={profiles}
           unreadByConv={unreadByConv}
           onSelect={selectConversation}
           onNewGroup={() => setShowNewGroup(true)}
@@ -165,6 +184,7 @@ export default function ChatPage() {
           username={username}
           conversation={active}
           myAvatarSeed={myAvatarSeed || username}
+          profiles={profiles}
           onOpenSettings={active.kind === "group" ? () => setShowGroupSettings(true) : undefined}
         />
       </div>

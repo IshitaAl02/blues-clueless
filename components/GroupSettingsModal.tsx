@@ -53,6 +53,7 @@ export default function GroupSettingsModal({
   }
 
   async function handleRemove(uid: string) {
+    if (!conversation) return;
     if (uid === myUserId) {
       if (!confirm("Leave this group? You'll need to be re-added to come back.")) return;
     } else {
@@ -71,6 +72,7 @@ export default function GroupSettingsModal({
   }
 
   async function save() {
+    if (!conversation) return;
     setBusy(true);
     setErr(null);
     try {

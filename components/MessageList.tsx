@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ChatMessage, PresenceUser, ReadReceipt, ReplyRef } from "@/lib/types";
 import { buildReplyRef } from "@/lib/reply";
+import { ProfileMap, seedFor } from "@/lib/profilesCache";
 import { avatarUrlForUser, colorForUser } from "@/lib/avatar";
 
 function Avatar({ seed, size = 36 }: { seed: string; size?: number }) {
@@ -44,6 +45,7 @@ export default function MessageList({
   messages,
   myUserId,
   myAvatarSeed,
+  profiles,
   typingUsers,
   reads,
   onlineUsers,
@@ -55,6 +57,7 @@ export default function MessageList({
   messages: ChatMessage[];
   myUserId: string;
   myAvatarSeed: string;
+  profiles: ProfileMap;
   typingUsers: string[];
   reads: Record<string, ReadReceipt>;
   onlineUsers: PresenceUser[];
@@ -129,7 +132,7 @@ export default function MessageList({
           <div key={m.id} id={`msg-${m.id}`} className={`flex gap-2 rounded-xl transition-colors ${mine ? "justify-end" : "justify-start"}`}>
             {!mine && (
               <div className="w-9">
-                {showHeader ? <Avatar seed={m.username} /> : null}
+                {showHeader ? <Avatar seed={seedFor(profiles, m.userId, m.username)} /> : null}
               </div>
             )}
             {/* avatar for own messages on the right side is rendered after the bubble below */}
