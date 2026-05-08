@@ -27,7 +27,7 @@ export default function Modal({
       onClick={onClose}
     >
       <div
-        className="solid-card max-w-md w-full p-6 relative"
+        className="solid-card max-w-md w-full p-5 sm:p-6 relative max-h-[92dvh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <button

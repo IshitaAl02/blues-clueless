@@ -15,6 +15,8 @@ export default function Sidebar({
   myAvatarSeed,
   profiles,
   unreadByConv,
+  isOpen,
+  onClose,
   onSelect,
   onNewGroup,
   onNewDM,
@@ -28,6 +30,8 @@ export default function Sidebar({
   myAvatarSeed: string;
   profiles: ProfileMap;
   unreadByConv: Record<string, number>;
+  isOpen: boolean;
+  onClose: () => void;
   onSelect: (c: Conversation) => void;
   onNewGroup: () => void;
   onNewDM: () => void;
@@ -95,13 +99,28 @@ export default function Sidebar({
   }
 
   return (
-    <aside className="w-64 shrink-0 glass-card flex flex-col h-full overflow-hidden">
+    <aside
+      className={`
+        w-72 max-w-[85vw] lg:w-64 shrink-0 glass-card flex flex-col overflow-hidden
+        h-[100dvh] lg:h-full
+        fixed lg:static inset-y-0 left-0 z-40
+        transition-transform duration-200
+        ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+      `}
+    >
       <div className="px-3 py-3 border-b-2 border-ink flex items-center gap-2 bg-gradient-to-br from-mint to-sky relative on-accent">
         <PawLogo size={32} />
         <div className="leading-tight flex-1 min-w-0">
           <div className="font-display text-lg truncate">Blue's Clueless</div>
           <div className="text-[10px] italic opacity-80 truncate">"We have no idea either."</div>
         </div>
+
+        <button
+          onClick={onClose}
+          className="lg:hidden btn-ghost !py-1 !px-2 text-base"
+          aria-label="Close sidebar"
+          title="Close"
+        >✕</button>
 
         <div className="relative" ref={menuRef}>
           <button

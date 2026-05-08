@@ -24,6 +24,7 @@ export default function ChatRoom({
   myAvatarSeed,
   profiles,
   onOpenSettings,
+  onOpenSidebar,
 }: {
   userId: string;
   username: string;
@@ -31,6 +32,7 @@ export default function ChatRoom({
   myAvatarSeed: string;
   profiles: ProfileMap;
   onOpenSettings?: () => void;
+  onOpenSidebar?: () => void;
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [online, setOnline] = useState<PresenceUser[]>([]);
@@ -360,7 +362,15 @@ export default function ChatRoom({
         className="flex items-center justify-between px-4 py-3 border-b-2 border-ink on-accent"
         style={{ background: "linear-gradient(135deg, #5DF8D8 0%, #6FD1D7 100%)" }}
       >
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            {onOpenSidebar && (
+              <button
+                onClick={onOpenSidebar}
+                className="lg:hidden btn-ghost !py-1 !px-2 text-base shrink-0"
+                aria-label="Open sidebar"
+                title="Conversations"
+              >☰</button>
+            )}
             <div className="relative shrink-0">
               {conversation.kind === "dm" ? (
                 (() => {
@@ -388,8 +398,8 @@ export default function ChatRoom({
               )}
             </div>
             <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl leading-tight truncate">{convLabel}</h1>
-              <p className="text-[11px] italic opacity-80 truncate">
+              <h1 className="text-lg sm:text-2xl leading-tight truncate">{convLabel}</h1>
+              <p className="hidden sm:block text-[11px] italic opacity-80 truncate">
                 {conversation.kind === "dm"
                   ? "Direct message"
                   : conversation.kind === "group"
@@ -399,7 +409,7 @@ export default function ChatRoom({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <div className="hidden sm:flex -space-x-2">
               {online.slice(0, 5).map((u) => {
                 const seed = u.userId === userId
@@ -423,7 +433,7 @@ export default function ChatRoom({
                 </div>
               )}
             </div>
-            <span className="chip">🐾 {online.length}</span>
+            <span className="chip hidden sm:inline-flex">🐾 {online.length}</span>
             <button
               onClick={toggleNotifications}
               className="btn-ghost !py-1 !px-3 text-sm"

@@ -24,6 +24,7 @@ export default function ChatPage() {
   const [showNewDM, setShowNewDM] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showGroupSettings, setShowGroupSettings] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [myAvatarSeed, setMyAvatarSeed] = useState<string>("");
   const [profiles, setProfiles] = useState<ProfileMap>({});
   const [unreadByConv, setUnreadByConv] = useState<Record<string, number>>({});
@@ -121,6 +122,7 @@ export default function ChatPage() {
 
   function selectConversation(c: Conversation) {
     setActive(c);
+    setSidebarOpen(false); // close drawer on mobile after selecting
     setUnreadByConv((prev) => {
       if (!prev[c.id]) return prev;
       const next = { ...prev };
@@ -161,8 +163,8 @@ export default function ChatPage() {
   }
 
   return (
-    <main className="min-h-screen flex justify-center p-3 sm:p-6">
-      <div className="flex gap-3 w-full max-w-6xl h-[92vh]">
+    <main className="min-h-[100dvh] flex justify-center p-0 sm:p-4 lg:p-6">
+      <div className="flex gap-0 lg:gap-3 w-full max-w-6xl h-[100dvh] sm:h-[92vh] relative">
         <Sidebar
           conversations={conversations}
           activeId={active.id}
@@ -171,12 +173,22 @@ export default function ChatPage() {
           myAvatarSeed={myAvatarSeed || username}
           profiles={profiles}
           unreadByConv={unreadByConv}
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
           onSelect={selectConversation}
           onNewGroup={() => setShowNewGroup(true)}
           onNewDM={() => setShowNewDM(true)}
           onOpenProfile={() => setShowProfile(true)}
           onLogout={handleLogout}
         />
+
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 bg-black/40 z-30 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+            aria-hidden="true"
+          />
+        )}
 
         <ChatRoom
           key={active.id}
@@ -186,6 +198,7 @@ export default function ChatPage() {
           myAvatarSeed={myAvatarSeed || username}
           profiles={profiles}
           onOpenSettings={active.kind === "group" ? () => setShowGroupSettings(true) : undefined}
+          onOpenSidebar={() => setSidebarOpen(true)}
         />
       </div>
 
