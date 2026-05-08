@@ -6,13 +6,7 @@ import { supabase } from "@/lib/supabase";
 import ChatRoom from "@/components/ChatRoom";
 import Sidebar from "@/components/Sidebar";
 import { NewGroupModal, NewDMModal } from "@/components/ConversationModals";
-import {
-  Conversation,
-  LOBBY,
-  listConversations,
-  channelForConversation,
-} from "@/lib/conversations";
-import type { ChatMessage } from "@/lib/types";
+import { Conversation, LOBBY, listConversations } from "@/lib/conversations";
 
 export default function ChatPage() {
   const router = useRouter();
@@ -64,38 +58,33 @@ export default function ChatPage() {
 
   useEffect(() => { refreshConversations(); }, [refreshConversations]);
 
-  // Subscribe to every conversation channel in the background so we can
-  // count unread messages even while looking at a different conversation.
+  // One global channel listens for INSERTs on the messages table.
+  // RLS on the messages table only lets us see rows for conversations we're
+  // a member of, so we automatically only get notified about our own conversations.
   useEffect(() => {
     if (!userId) return;
-    // Watch the lobby + all DM/group convs for incoming messages so we can show
-    // per-conversation unread badges in the sidebar.
-    const watchList = [LOBBY, ...conversations];
-    const channels = watchList.map((c) => {
-        const ch = supabase.channel(channelForConversation(c), {
-          config: { broadcast: { self: false } },
-        });
-        ch.on("broadcast", { event: "message" }, ({ payload }) => {
-          const msg = payload as ChatMessage;
-          if (msg.userId === userId) return;
-          // If this conv is the one the user is currently viewing AND the tab is
-          // focused, the user is "reading" it — don't bump.
-          if (c.id === activeIdRef.current && document.hasFocus()) return;
-          setUnreadByConv((prev) => ({
-            ...prev,
-            [c.id]: (prev[c.id] ?? 0) + 1,
-          }));
-        });
-        ch.subscribe();
-        return ch;
-      });
+    const channel = supabase
+      .channel("unread-watcher");
+    channel.on(
+      "postgres_changes" as any,
+      { event: "INSERT", schema: "public", table: "messages" },
+      (payload: any) => {
+        const row = payload.new;
+        if (!row) return;
+        if (row.user_id === userId) return; // my own message
+        if (row.conversation_id === activeIdRef.current && document.hasFocus()) return;
+        setUnreadByConv((prev) => ({
+          ...prev,
+          [row.conversation_id]: (prev[row.conversation_id] ?? 0) + 1,
+        }));
+      },
+    );
+    channel.subscribe();
     return () => {
-      channels.forEach((ch) => {
-        ch.unsubscribe();
-        supabase.removeChannel(ch);
-      });
+      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
-  }, [userId, conversations]);
+  }, [userId]);
 
   function selectConversation(c: Conversation) {
     setActive(c);
