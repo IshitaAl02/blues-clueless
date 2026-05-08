@@ -68,11 +68,20 @@ export default function MessageList({
 }) {
   const QUICK_REACTIONS = ["❤️", "😂", "👍", "😮", "🐾"];
   const ref = useRef<HTMLDivElement>(null);
+  const initialJumpDone = useRef(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
 
+  // First time messages land for this conversation → jump instantly to the bottom.
+  // Subsequent new messages animate smoothly.
   useEffect(() => {
-    ref.current?.scrollTo({ top: ref.current.scrollHeight, behavior: "smooth" });
+    const el = ref.current;
+    if (!el) return;
+    el.scrollTo({
+      top: el.scrollHeight,
+      behavior: initialJumpDone.current ? "smooth" : "auto",
+    });
+    if (messages.length > 0) initialJumpDone.current = true;
   }, [messages.length, typingUsers.length]);
 
   // Find the index of the last message I sent — that's where we show "seen by"
