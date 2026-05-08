@@ -10,6 +10,15 @@ export interface ChatMessage {
   gifUrl?: string;
   ts: number;
   edited?: boolean;
+  replyTo?: ReplyRef;
+}
+
+export interface ReplyRef {
+  id: string;
+  userId: string;
+  username: string;
+  kind: MessageKind;
+  preview: string;
 }
 
 export interface PresenceUser {

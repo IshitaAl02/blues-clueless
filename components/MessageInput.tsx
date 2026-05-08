@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import GifPicker from "./GifPicker";
 import { fileToCompressedDataUrl } from "@/lib/image";
-import type { ChatMessage } from "@/lib/types";
+import type { ChatMessage, ReplyRef } from "@/lib/types";
+import { colorForUser } from "@/lib/avatar";
 
 const EmojiPicker = dynamic(() => import("emoji-picker-react"), { ssr: false });
 
@@ -13,9 +14,13 @@ type Outbound = Omit<ChatMessage, "id" | "ts" | "userId" | "username">;
 export default function MessageInput({
   onSend,
   onTyping,
+  replyingTo,
+  onCancelReply,
 }: {
   onSend: (m: Outbound) => void;
   onTyping: () => void;
+  replyingTo: ReplyRef | null;
+  onCancelReply: () => void;
 }) {
   const [text, setText] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
@@ -63,6 +68,30 @@ export default function MessageInput({
 
   return (
     <div className="border-t-2 border-ink bg-white/80 backdrop-blur p-3 relative" ref={popRef}>
+      {replyingTo && (
+        <div
+          className="mb-2 flex items-center justify-between gap-2 rounded-md px-2 py-1.5"
+          style={{
+            background: "#F2FBFC",
+            borderLeft: `4px solid ${colorForUser(replyingTo.userId)}`,
+          }}
+        >
+          <div className="text-[12px] min-w-0">
+            <div className="font-bold" style={{ color: colorForUser(replyingTo.userId) }}>
+              ↩ Replying to {replyingTo.username}
+            </div>
+            <div className="opacity-70 truncate">{replyingTo.preview || "—"}</div>
+          </div>
+          <button
+            type="button"
+            onClick={onCancelReply}
+            className="text-ink rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-200 border border-ink"
+            title="Cancel reply"
+            aria-label="Cancel reply"
+          >✕</button>
+        </div>
+      )}
+
       {showEmoji && (
         <div className="absolute bottom-20 left-3 z-20">
           <EmojiPicker
@@ -123,6 +152,9 @@ export default function MessageInput({
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
               sendText();
+            } else if (e.key === "Escape" && replyingTo) {
+              e.preventDefault();
+              onCancelReply();
             }
           }}
         />

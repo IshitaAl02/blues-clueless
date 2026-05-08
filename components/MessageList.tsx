@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { ChatMessage, PresenceUser, ReadReceipt } from "@/lib/types";
+import type { ChatMessage, PresenceUser, ReadReceipt, ReplyRef } from "@/lib/types";
+import { buildReplyRef } from "@/lib/reply";
 import { avatarUrlForUser, colorForUser } from "@/lib/avatar";
 
 function Avatar({ seed, size = 36 }: { seed: string; size?: number }) {
@@ -47,6 +48,7 @@ export default function MessageList({
   onlineUsers,
   onEdit,
   onDelete,
+  onReply,
 }: {
   messages: ChatMessage[];
   myUserId: string;
@@ -55,6 +57,7 @@ export default function MessageList({
   onlineUsers: PresenceUser[];
   onEdit: (id: string, newText: string) => void;
   onDelete: (id: string) => void;
+  onReply: (ref: ReplyRef) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -88,6 +91,14 @@ export default function MessageList({
     }
   }
 
+  function scrollToMessage(id: string) {
+    const el = document.getElementById(`msg-${id}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.classList.add("flash-highlight");
+    setTimeout(() => el.classList.remove("flash-highlight"), 1400);
+  }
+
   return (
     <div ref={ref} className="flex-1 overflow-y-auto p-4 space-y-3">
       {messages.length === 0 && (
@@ -110,7 +121,7 @@ export default function MessageList({
           : [];
 
         return (
-          <div key={m.id} className={`flex gap-2 ${mine ? "justify-end" : "justify-start"}`}>
+          <div key={m.id} id={`msg-${m.id}`} className={`flex gap-2 rounded-xl transition-colors ${mine ? "justify-end" : "justify-start"}`}>
             {!mine && (
               <div className="w-9">
                 {showHeader ? <Avatar seed={m.username} /> : null}
@@ -134,29 +145,31 @@ export default function MessageList({
               )}
 
               <div className="flex items-center gap-1">
-                {mine && !editing && m.kind === "text" && (
+                {!editing && (
                   <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
-                      onClick={() => startEdit(m)}
-                      className="text-xs bg-white border border-ink rounded-full w-7 h-7 flex items-center justify-center hover:bg-mint"
-                      title="Edit"
-                      aria-label="Edit message"
-                    >✏️</button>
-                    <button
-                      onClick={() => handleDelete(m)}
-                      className="text-xs bg-white border border-ink rounded-full w-7 h-7 flex items-center justify-center hover:bg-red-200"
-                      title="Delete"
-                      aria-label="Delete message"
-                    >🗑️</button>
+                      onClick={() => onReply(buildReplyRef(m))}
+                      className="text-xs bg-white border border-ink rounded-full w-7 h-7 flex items-center justify-center hover:bg-sky"
+                      title="Reply"
+                      aria-label="Reply to message"
+                    >↩️</button>
+                    {mine && m.kind === "text" && (
+                      <button
+                        onClick={() => startEdit(m)}
+                        className="text-xs bg-white border border-ink rounded-full w-7 h-7 flex items-center justify-center hover:bg-mint"
+                        title="Edit"
+                        aria-label="Edit message"
+                      >✏️</button>
+                    )}
+                    {mine && (
+                      <button
+                        onClick={() => handleDelete(m)}
+                        className="text-xs bg-white border border-ink rounded-full w-7 h-7 flex items-center justify-center hover:bg-red-200"
+                        title="Delete"
+                        aria-label="Delete message"
+                      >🗑️</button>
+                    )}
                   </div>
-                )}
-                {mine && !editing && m.kind !== "text" && (
-                  <button
-                    onClick={() => handleDelete(m)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity text-xs bg-white border border-ink rounded-full w-7 h-7 flex items-center justify-center hover:bg-red-200"
-                    title="Delete"
-                    aria-label="Delete message"
-                  >🗑️</button>
                 )}
 
                 <div
@@ -183,6 +196,25 @@ export default function MessageList({
                     </div>
                   ) : (
                     <>
+                      {m.replyTo && (
+                        <button
+                          type="button"
+                          onClick={() => scrollToMessage(m.replyTo!.id)}
+                          className="block w-full text-left mb-1 rounded-md px-2 py-1 text-[11px] hover:brightness-95 transition"
+                          style={{
+                            background: mine ? "rgba(255,255,255,0.18)" : "#F2FBFC",
+                            borderLeft: `3px solid ${colorForUser(m.replyTo.userId)}`,
+                          }}
+                          title="Jump to original message"
+                        >
+                          <span className="font-bold block" style={{ color: mine ? "#5DF8D8" : colorForUser(m.replyTo.userId) }}>
+                            ↩ {m.replyTo.username}
+                          </span>
+                          <span className={`opacity-${mine ? "85" : "70"} block truncate`}>
+                            {m.replyTo.preview || "—"}
+                          </span>
+                        </button>
+                      )}
                       {m.kind === "text" && <span>{m.text}</span>}
                       {m.kind === "image" && m.imageData && (
                         // eslint-disable-next-line @next/next/no-img-element

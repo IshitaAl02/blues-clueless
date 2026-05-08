@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase, ROOM } from "@/lib/supabase";
-import type { ChatMessage, PresenceUser, ReadReceipt } from "@/lib/types";
+import type { ChatMessage, PresenceUser, ReadReceipt, ReplyRef } from "@/lib/types";
 import MessageList from "./MessageList";
 import MessageInput from "./MessageInput";
 import Toasts, { ToastItem } from "./Toasts";
@@ -20,6 +20,7 @@ export default function ChatRoom({ userId, username }: { userId: string; usernam
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [focused, setFocused] = useState(true);
   const [notifEnabled, setNotifEnabled] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<ReplyRef | null>(null);
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const typingSentAt = useRef(0);
@@ -215,12 +216,14 @@ export default function ChatRoom({ userId, username }: { userId: string; usernam
         ts: Date.now(),
         userId,
         username,
+        replyTo: replyingTo ?? undefined,
         ...m,
       };
       setMessages((prev) => [...prev, msg]);
       ch.send({ type: "broadcast", event: "message", payload: msg });
+      setReplyingTo(null);
     },
-    [userId, username],
+    [userId, username, replyingTo],
   );
 
   const editMessage = useCallback(
@@ -332,8 +335,14 @@ export default function ChatRoom({ userId, username }: { userId: string; usernam
           onlineUsers={online}
           onEdit={editMessage}
           onDelete={deleteMessage}
+          onReply={setReplyingTo}
         />
-        <MessageInput onSend={send} onTyping={onTyping} />
+        <MessageInput
+          onSend={send}
+          onTyping={onTyping}
+          replyingTo={replyingTo}
+          onCancelReply={() => setReplyingTo(null)}
+        />
       </div>
     </main>
   );

@@ -130,6 +130,16 @@ h1, h2, h3, .font-display {
   40% { transform: translateY(-4px); opacity: 1; }
 }
 
+/* Flash highlight when jumping to a quoted message */
+.flash-highlight {
+  animation: flash 1.4s ease-out;
+}
+@keyframes flash {
+  0% { background-color: rgba(93,248,216,0); }
+  20% { background-color: rgba(93,248,216,0.55); }
+  100% { background-color: rgba(93,248,216,0); }
+}
+
 /* Decorative chips */
 .chip {
   display: inline-flex;
