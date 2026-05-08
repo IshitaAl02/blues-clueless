@@ -103,7 +103,7 @@ export default function MessageInput({
   const canSend = !!pending || !!text.trim();
 
   return (
-    <div className="border-t-2 border-ink bg-white/80 backdrop-blur p-3 relative" ref={popRef}>
+    <div className="border-t-2 border-ink bg-white/80 backdrop-blur p-2 sm:p-3 relative" ref={popRef}>
       {replyingTo && (
         <div
           className="mb-2 flex items-center justify-between gap-2 rounded-md px-2 py-1.5"
@@ -175,22 +175,22 @@ export default function MessageInput({
         </div>
       )}
 
-      <div className="flex items-end gap-2">
+      <div className="flex items-end gap-1 sm:gap-2">
         <button
           type="button"
-          className="btn-ghost !px-3 !py-2 text-lg"
+          className="btn-ghost !px-2 !py-1 sm:!px-3 sm:!py-2 text-base sm:text-lg shrink-0"
           onClick={() => { setShowEmoji((s) => !s); setShowGif(false); }}
           aria-label="Emoji"
         >😊</button>
         <button
           type="button"
-          className="btn-ghost !px-3 !py-2 text-lg"
+          className="btn-ghost !px-2 !py-1 sm:!px-3 sm:!py-2 text-xs sm:text-lg font-bold shrink-0"
           onClick={() => { setShowGif((s) => !s); setShowEmoji(false); }}
           aria-label="GIF"
         >GIF</button>
         <button
           type="button"
-          className="btn-ghost !px-3 !py-2 text-lg"
+          className="btn-ghost !px-2 !py-1 sm:!px-3 sm:!py-2 text-base sm:text-lg shrink-0"
           onClick={() => fileRef.current?.click()}
           disabled={busy}
           aria-label="Image"
@@ -203,7 +203,7 @@ export default function MessageInput({
           onChange={handleFile}
         />
         <textarea
-          className="field flex-1 resize-none"
+          className="field flex-1 resize-none min-w-0 !px-2 sm:!px-4 !py-1.5 sm:!py-2.5"
           rows={1}
           placeholder={pending ? "Add a caption…" : "Got a clue? Type it (or paste an image)…"}
           value={text}
@@ -219,7 +219,11 @@ export default function MessageInput({
             }
           }}
         />
-        <button className="btn-primary" onClick={send} disabled={!canSend || busy}>
+        <button
+          className="btn-primary !px-3 sm:!px-5 !py-1.5 sm:!py-2.5 text-sm sm:text-base shrink-0"
+          onClick={send}
+          disabled={!canSend || busy}
+        >
           Send
         </button>
       </div>
