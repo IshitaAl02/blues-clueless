@@ -150,97 +150,90 @@ export default function ChatRoom({
     setTyping({});
     setUnread(0);
     setReplyingTo(null);
-    // Lobby is ephemeral — only DB-backed convs (groups & DMs) get history
-    if (conversation.kind !== "lobby") {
-      let cancelled = false;
-      fetchRecentMessages(conversation.id).then((msgs) => {
-        if (!cancelled) setMessages(msgs);
-      });
-      return () => { cancelled = true; };
-    }
-  }, [conversation.id, conversation.kind]);
+    let cancelled = false;
+    fetchRecentMessages(conversation.id).then((msgs) => {
+      if (!cancelled) setMessages(msgs);
+    });
+    return () => { cancelled = true; };
+  }, [conversation.id]);
 
   useEffect(() => {
     const channel = supabase.channel(channelForConversation(conversation), {
       config: { presence: { key: userId }, broadcast: { self: false } },
     });
 
-    channel
-      .on("broadcast", { event: "message" }, ({ payload }) => {
-        const msg = payload as ChatMessage;
-        setMessages((prev) => [...prev, msg]);
-        if (msg.userId !== userId) {
-          if (!document.hasFocus()) setUnread((u) => u + 1);
-          const preview =
-            msg.kind === "text" ? (msg.text ?? "")
-            : msg.kind === "image" ? "📷 sent an image"
-            : "🎬 sent a GIF";
-          const trimmed = preview.length > 80 ? preview.slice(0, 80) + "…" : preview;
-          pushToast({
-            id: msg.id,
-            username: msg.username,
-            userId: msg.userId,
-            text: trimmed,
-          });
-          fireDesktopNotif(`${msg.username} • Blue's Clueless`, trimmed);
-        }
-      })
-      .on("broadcast", { event: "message:edit" }, ({ payload }) => {
-        const { id, text } = payload as { id: string; text: string };
-        setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, text, edited: true } : m)));
-      })
-      .on("broadcast", { event: "message:delete" }, ({ payload }) => {
-        const { id } = payload as { id: string };
-        setMessages((prev) => prev.filter((m) => m.id !== id));
-      })
-      .on("broadcast", { event: "reaction" }, ({ payload }) => {
-        const { messageId, emoji, userId: rUid, username: rName, action } = payload as {
-          messageId: string; emoji: string; userId: string; username: string; action: "add" | "remove";
-        };
-        setMessages((prev) =>
-          prev.map((m) => {
-            if (m.id !== messageId) return m;
-            const reactions = { ...(m.reactions ?? {}) };
-            const existing = reactions[emoji] ?? [];
-            if (action === "add") {
-              if (!existing.find((u) => u.userId === rUid)) {
-                reactions[emoji] = [...existing, { userId: rUid, username: rName }];
-              }
-            } else {
-              const next = existing.filter((u) => u.userId !== rUid);
-              if (next.length === 0) delete reactions[emoji];
-              else reactions[emoji] = next;
+    // Attach handlers separately — chaining mixed event-type .on() calls
+    // confuses the TS overloads (especially "broadcast" → "presence").
+    channel.on("broadcast", { event: "message" }, ({ payload }) => {
+      const msg = payload as ChatMessage;
+      setMessages((prev) => [...prev, msg]);
+      if (msg.userId !== userId) {
+        if (!document.hasFocus()) setUnread((u) => u + 1);
+        const preview =
+          msg.kind === "text" ? (msg.text ?? "")
+          : msg.kind === "image" ? "📷 sent an image"
+          : "🎬 sent a GIF";
+        const trimmed = preview.length > 80 ? preview.slice(0, 80) + "…" : preview;
+        pushToast({ id: msg.id, username: msg.username, userId: msg.userId, text: trimmed });
+        fireDesktopNotif(`${msg.username} • Blue's Clueless`, trimmed);
+      }
+    });
+    channel.on("broadcast", { event: "message:edit" }, ({ payload }) => {
+      const { id, text } = payload as { id: string; text: string };
+      setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, text, edited: true } : m)));
+    });
+    channel.on("broadcast", { event: "message:delete" }, ({ payload }) => {
+      const { id } = payload as { id: string };
+      setMessages((prev) => prev.filter((m) => m.id !== id));
+    });
+    channel.on("broadcast", { event: "reaction" }, ({ payload }) => {
+      const { messageId, emoji, userId: rUid, username: rName, action } = payload as {
+        messageId: string; emoji: string; userId: string; username: string; action: "add" | "remove";
+      };
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (m.id !== messageId) return m;
+          const reactions = { ...(m.reactions ?? {}) };
+          const existing = reactions[emoji] ?? [];
+          if (action === "add") {
+            if (!existing.find((u) => u.userId === rUid)) {
+              reactions[emoji] = [...existing, { userId: rUid, username: rName }];
             }
-            return { ...m, reactions };
-          }),
-        );
-      })
-      .on("broadcast", { event: "read" }, ({ payload }) => {
-        const r = payload as ReadReceipt;
-        setReads((prev) => {
-          const existing = prev[r.userId];
-          if (existing && existing.lastReadTs >= r.lastReadTs) return prev;
-          return { ...prev, [r.userId]: r };
-        });
-      })
-      .on("broadcast", { event: "typing" }, ({ payload }) => {
-        const { userId: uid } = payload as { userId: string; username: string };
-        setTyping((prev) => ({ ...prev, [uid]: Date.now() }));
-      })
-      .on("presence", { event: "sync" }, () => {
-        const state = channel.presenceState<PresenceUser>();
-        const users: PresenceUser[] = [];
-        for (const key of Object.keys(state)) {
-          const arr = state[key];
-          if (arr && arr[0]) users.push(arr[0]);
-        }
-        setOnline(users);
-      })
-      .subscribe(async (status) => {
-        if (status === "SUBSCRIBED") {
-          await channel.track({ userId, username, online_at: new Date().toISOString() });
-        }
+          } else {
+            const next = existing.filter((u) => u.userId !== rUid);
+            if (next.length === 0) delete reactions[emoji];
+            else reactions[emoji] = next;
+          }
+          return { ...m, reactions };
+        }),
+      );
+    });
+    channel.on("broadcast", { event: "read" }, ({ payload }) => {
+      const r = payload as ReadReceipt;
+      setReads((prev) => {
+        const existing = prev[r.userId];
+        if (existing && existing.lastReadTs >= r.lastReadTs) return prev;
+        return { ...prev, [r.userId]: r };
       });
+    });
+    channel.on("broadcast", { event: "typing" }, ({ payload }) => {
+      const { userId: uid } = payload as { userId: string; username: string };
+      setTyping((prev) => ({ ...prev, [uid]: Date.now() }));
+    });
+    channel.on("presence", { event: "sync" }, () => {
+      const state = channel.presenceState<PresenceUser>();
+      const users: PresenceUser[] = [];
+      for (const key of Object.keys(state)) {
+        const arr = state[key];
+        if (arr && arr[0]) users.push(arr[0]);
+      }
+      setOnline(users);
+    });
+    channel.subscribe(async (status) => {
+      if (status === "SUBSCRIBED") {
+        await channel.track({ userId, username, online_at: new Date().toISOString() });
+      }
+    });
 
     channelRef.current = channel;
     return () => {
@@ -277,11 +270,9 @@ export default function ChatRoom({
       setMessages((prev) => [...prev, msg]);
       ch.send({ type: "broadcast", event: "message", payload: msg });
       setReplyingTo(null);
-      if (conversation.kind !== "lobby") {
-        insertMessageDb(conversation.id, msg);
-      }
+      insertMessageDb(conversation.id, msg);
     },
-    [userId, username, replyingTo, conversation.id, conversation.kind],
+    [userId, username, replyingTo, conversation.id],
   );
 
   const editMessage = useCallback(
@@ -292,11 +283,9 @@ export default function ChatRoom({
         event: "message:edit",
         payload: { id, text },
       });
-      if (conversation.kind !== "lobby") {
-        updateMessageTextDb(id, text);
-      }
+      updateMessageTextDb(id, text);
     },
-    [conversation.kind],
+    [],
   );
 
   const toggleReaction = useCallback(
@@ -337,10 +326,8 @@ export default function ChatRoom({
       event: "message:delete",
       payload: { id },
     });
-    if (conversation.kind !== "lobby") {
-      deleteMessageDb(id);
-    }
-  }, [conversation.kind]);
+    deleteMessageDb(id);
+  }, []);
 
   const onTyping = useCallback(() => {
     const now = Date.now();

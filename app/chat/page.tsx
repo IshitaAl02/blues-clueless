@@ -1,12 +1,18 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import ChatRoom from "@/components/ChatRoom";
 import Sidebar from "@/components/Sidebar";
 import { NewGroupModal, NewDMModal } from "@/components/ConversationModals";
-import { Conversation, LOBBY, listConversations } from "@/lib/conversations";
+import {
+  Conversation,
+  LOBBY,
+  listConversations,
+  channelForConversation,
+} from "@/lib/conversations";
+import type { ChatMessage } from "@/lib/types";
 
 export default function ChatPage() {
   const router = useRouter();
@@ -18,6 +24,9 @@ export default function ChatPage() {
   const [active, setActive] = useState<Conversation>(LOBBY);
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [showNewDM, setShowNewDM] = useState(false);
+  const [unreadByConv, setUnreadByConv] = useState<Record<string, number>>({});
+  const activeIdRef = useRef(active.id);
+  useEffect(() => { activeIdRef.current = active.id; }, [active.id]);
 
   useEffect(() => {
     (async () => {
@@ -55,11 +64,54 @@ export default function ChatPage() {
 
   useEffect(() => { refreshConversations(); }, [refreshConversations]);
 
+  // Subscribe to every conversation channel in the background so we can
+  // count unread messages even while looking at a different conversation.
+  useEffect(() => {
+    if (!userId) return;
+    // Watch the lobby + all DM/group convs for incoming messages so we can show
+    // per-conversation unread badges in the sidebar.
+    const watchList = [LOBBY, ...conversations];
+    const channels = watchList.map((c) => {
+        const ch = supabase.channel(channelForConversation(c), {
+          config: { broadcast: { self: false } },
+        });
+        ch.on("broadcast", { event: "message" }, ({ payload }) => {
+          const msg = payload as ChatMessage;
+          if (msg.userId === userId) return;
+          // If this conv is the one the user is currently viewing AND the tab is
+          // focused, the user is "reading" it — don't bump.
+          if (c.id === activeIdRef.current && document.hasFocus()) return;
+          setUnreadByConv((prev) => ({
+            ...prev,
+            [c.id]: (prev[c.id] ?? 0) + 1,
+          }));
+        });
+        ch.subscribe();
+        return ch;
+      });
+    return () => {
+      channels.forEach((ch) => {
+        ch.unsubscribe();
+        supabase.removeChannel(ch);
+      });
+    };
+  }, [userId, conversations]);
+
+  function selectConversation(c: Conversation) {
+    setActive(c);
+    setUnreadByConv((prev) => {
+      if (!prev[c.id]) return prev;
+      const next = { ...prev };
+      delete next[c.id];
+      return next;
+    });
+  }
+
   async function handleCreated(convId: string) {
     const list = await listConversations(userId!);
     setConversations(list);
     const found = list.find((c) => c.id === convId);
-    if (found) setActive(found);
+    if (found) selectConversation(found);
   }
 
   async function handleLogout() {
@@ -83,7 +135,8 @@ export default function ChatPage() {
           conversations={conversations}
           activeId={active.id}
           myUserId={userId}
-          onSelect={setActive}
+          unreadByConv={unreadByConv}
+          onSelect={selectConversation}
           onNewGroup={() => setShowNewGroup(true)}
           onNewDM={() => setShowNewDM(true)}
           onLogout={handleLogout}

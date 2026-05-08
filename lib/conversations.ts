@@ -16,9 +16,12 @@ export interface Conversation {
   members: ConversationMember[];
 }
 
-// The hardcoded shared room everyone sees, no DB needed.
+// The lobby is now a real conversation in the DB with this fixed UUID,
+// seeded once + every signup auto-joins via a trigger.
+export const LOBBY_ID = "00000000-0000-0000-0000-000000000001";
+
 export const LOBBY: Conversation = {
-  id: "lobby",
+  id: LOBBY_ID,
   kind: "lobby",
   name: "Blue's Clueless",
   created_by: null,
@@ -27,7 +30,7 @@ export const LOBBY: Conversation = {
 };
 
 export function channelForConversation(c: Conversation): string {
-  return c.id === "lobby" ? "blues-clueless-room" : `conv-${c.id}`;
+  return `conv-${c.id}`;
 }
 
 // Display name: groups use their `name`, DMs use the *other* person's username
@@ -74,11 +77,13 @@ export async function listConversations(myUserId: string): Promise<Conversation[
     byConv.set(row.conversation_id, list);
   }
 
-  return (convs ?? []).map((c) => ({
-    ...c,
-    kind: c.kind as ConvKind,
-    members: byConv.get(c.id) ?? [],
-  }));
+  return (convs ?? [])
+    .filter((c) => c.id !== LOBBY_ID) // lobby is rendered separately
+    .map((c) => ({
+      ...c,
+      kind: c.kind as ConvKind,
+      members: byConv.get(c.id) ?? [],
+    }));
 }
 
 export async function createGroup(
