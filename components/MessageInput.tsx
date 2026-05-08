@@ -47,10 +47,7 @@ export default function MessageInput({
     setText("");
   }
 
-  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    e.target.value = "";
-    if (!f) return;
+  async function sendImageFile(f: File) {
     if (!f.type.startsWith("image/")) {
       alert("Only images please.");
       return;
@@ -64,6 +61,29 @@ export default function MessageInput({
     } finally {
       setBusy(false);
     }
+  }
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (f) await sendImageFile(f);
+  }
+
+  async function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      if (it.kind === "file" && it.type.startsWith("image/")) {
+        const f = it.getAsFile();
+        if (f) {
+          e.preventDefault();
+          await sendImageFile(f);
+          return;
+        }
+      }
+    }
+    // No image in clipboard — let the default paste happen (text)
   }
 
   return (
@@ -145,9 +165,10 @@ export default function MessageInput({
         <textarea
           className="field flex-1 resize-none"
           rows={1}
-          placeholder="Got a clue? Type it…"
+          placeholder="Got a clue? Type it (or paste an image)…"
           value={text}
           onChange={(e) => { setText(e.target.value); onTyping(); }}
+          onPaste={handlePaste}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
