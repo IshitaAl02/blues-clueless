@@ -87,7 +87,60 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
+
+-- ====== Conversations + members (groups & DMs) ======
+
+create table if not exists public.conversations (
+  id uuid primary key default gen_random_uuid(),
+  kind text not null check (kind in ('dm','group')),
+  name text,
+  created_by uuid references auth.users on delete set null,
+  created_at timestamptz default now()
+);
+
+create table if not exists public.conversation_members (
+  conversation_id uuid references public.conversations on delete cascade,
+  user_id uuid references auth.users on delete cascade,
+  joined_at timestamptz default now(),
+  primary key (conversation_id, user_id)
+);
+
+alter table public.conversations enable row level security;
+alter table public.conversation_members enable row level security;
+
+-- Helper to avoid recursive RLS — checks membership with elevated privileges
+create or replace function public.is_member(conv_id uuid)
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.conversation_members
+                 where conversation_id = conv_id and user_id = auth.uid())
+$$;
+
+-- Members can read conversations they belong to
+drop policy if exists "members read their conversations" on public.conversations;
+create policy "members read their conversations"
+  on public.conversations for select to authenticated
+  using (public.is_member(id));
+
+-- Anyone authenticated can create a conversation (they'll add themselves as creator)
+drop policy if exists "auth users create conversations" on public.conversations;
+create policy "auth users create conversations"
+  on public.conversations for insert to authenticated
+  with check (auth.uid() = created_by);
+
+-- Members can read all member rows of conversations they belong to
+drop policy if exists "members read members of their conversations" on public.conversation_members;
+create policy "members read members of their conversations"
+  on public.conversation_members for select to authenticated
+  using (public.is_member(conversation_id));
+
+-- Anyone authenticated can add member rows (used during group/DM creation)
+drop policy if exists "auth users add members" on public.conversation_members;
+create policy "auth users add members"
+  on public.conversation_members for insert to authenticated
+  with check (true);
 ```
+
+If you've already deployed once and just need this conversations migration, run **only** the `-- Conversations + members` section.
 
 ### 4. Get a free Giphy API key
 

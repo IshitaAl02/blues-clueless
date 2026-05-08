@@ -1,17 +1,24 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import { supabase, ROOM } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import type { ChatMessage, PresenceUser, ReadReceipt, ReplyRef } from "@/lib/types";
+import { Conversation, channelForConversation, displayName } from "@/lib/conversations";
 import MessageList from "./MessageList";
 import MessageInput from "./MessageInput";
 import Toasts, { ToastItem } from "./Toasts";
 import { PawLogo } from "./Cartoons";
 import { avatarUrlForUser, colorForUser } from "@/lib/avatar";
 
-export default function ChatRoom({ userId, username }: { userId: string; username: string }) {
-  const router = useRouter();
+export default function ChatRoom({
+  userId,
+  username,
+  conversation,
+}: {
+  userId: string;
+  username: string;
+  conversation: Conversation;
+}) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [online, setOnline] = useState<PresenceUser[]>([]);
   const [typing, setTyping] = useState<Record<string, number>>({});
@@ -21,6 +28,8 @@ export default function ChatRoom({ userId, username }: { userId: string; usernam
   const [focused, setFocused] = useState(true);
   const [notifEnabled, setNotifEnabled] = useState(false);
   const [replyingTo, setReplyingTo] = useState<ReplyRef | null>(null);
+
+  const convLabel = displayName(conversation, userId);
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const typingSentAt = useRef(0);
@@ -42,8 +51,9 @@ export default function ChatRoom({ userId, username }: { userId: string; usernam
 
   // Update document title with unread count
   useEffect(() => {
-    document.title = unread > 0 ? `(${unread}) Blue's Clueless` : "Blue's Clueless";
-  }, [unread]);
+    const base = `${convLabel} · Blue's Clueless`;
+    document.title = unread > 0 ? `(${unread}) ${base}` : base;
+  }, [unread, convLabel]);
 
   // Reset unread when window regains focus
   useEffect(() => {
@@ -127,8 +137,17 @@ export default function ChatRoom({ userId, username }: { userId: string; usernam
     sendRead(latestTs);
   }, [focused, messages, sendRead]);
 
+  // Reset local state when switching conversations — messages are ephemeral
   useEffect(() => {
-    const channel = supabase.channel(ROOM, {
+    setMessages([]);
+    setReads({});
+    setTyping({});
+    setUnread(0);
+    setReplyingTo(null);
+  }, [conversation.id]);
+
+  useEffect(() => {
+    const channel = supabase.channel(channelForConversation(conversation), {
       config: { presence: { key: userId }, broadcast: { self: false } },
     });
 
@@ -214,7 +233,7 @@ export default function ChatRoom({ userId, username }: { userId: string; usernam
       channel.unsubscribe();
       supabase.removeChannel(channel);
     };
-  }, [userId, username]);
+  }, [userId, username, conversation.id]);
 
   // Reap stale typing indicators
   useEffect(() => {
@@ -311,28 +330,29 @@ export default function ChatRoom({ userId, username }: { userId: string; usernam
     });
   }, [userId, username]);
 
-  async function logout() {
-    await supabase.auth.signOut();
-    router.replace("/login");
-  }
-
   const typingNames = Object.keys(typing)
     .filter((uid) => uid !== userId)
     .map((uid) => online.find((u) => u.userId === uid)?.username)
     .filter((x): x is string => !!x);
 
   return (
-    <main className="min-h-screen flex justify-center p-3 sm:p-6">
+    <div className="glass-card flex flex-col flex-1 h-full overflow-hidden">
       <Toasts toasts={toasts} onDismiss={dismissToast} />
 
-      <div className="glass-card flex flex-col w-full max-w-3xl h-[92vh] overflow-hidden">
-        <header
-          className="flex items-center justify-between px-4 py-3 border-b-2 border-ink"
-          style={{ background: "linear-gradient(135deg, #5DF8D8 0%, #6FD1D7 100%)" }}
-        >
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <PawLogo size={42} />
+      <header
+        className="flex items-center justify-between px-4 py-3 border-b-2 border-ink"
+        style={{ background: "linear-gradient(135deg, #5DF8D8 0%, #6FD1D7 100%)" }}
+      >
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="relative shrink-0">
+              {conversation.kind === "dm" ? (
+                <div className="avatar-ring" style={{ width: 38, height: 38 }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={avatarUrlForUser(convLabel)} alt="" width={38} height={38} />
+                </div>
+              ) : (
+                <PawLogo size={38} />
+              )}
               {unread > 0 && (
                 <span
                   className="absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 rounded-full bg-red-500 text-white text-[11px] font-bold flex items-center justify-center border-2 border-ink animate-pulse"
@@ -342,13 +362,19 @@ export default function ChatRoom({ userId, username }: { userId: string; usernam
                 </span>
               )}
             </div>
-            <div>
-              <h1 className="text-2xl leading-tight">Blue's Clueless</h1>
-              <p className="text-[11px] italic opacity-80">"We have no idea either."</p>
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl leading-tight truncate">{convLabel}</h1>
+              <p className="text-[11px] italic opacity-80 truncate">
+                {conversation.kind === "dm"
+                  ? "Direct message"
+                  : conversation.kind === "group"
+                    ? `${conversation.members.length} members`
+                    : "Public lobby — everyone's here"}
+              </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <div className="hidden sm:flex -space-x-2">
               {online.slice(0, 5).map((u) => (
                 <div
@@ -367,16 +393,15 @@ export default function ChatRoom({ userId, username }: { userId: string; usernam
                 </div>
               )}
             </div>
-            <span className="chip">🐾 {online.length} online</span>
+            <span className="chip">🐾 {online.length}</span>
             <button
               onClick={toggleNotifications}
               className="btn-ghost !py-1 !px-3 text-sm"
-              title={notifEnabled ? "Notifications on — click to turn off" : "Notifications off — click to turn on"}
+              title={notifEnabled ? "Notifications on" : "Notifications off"}
               aria-label="Toggle notifications"
             >
               {notifEnabled ? "🔔" : "🔕"}
             </button>
-            <button onClick={logout} className="btn-ghost !py-1 !px-3 text-sm">Leave</button>
           </div>
         </header>
 
@@ -397,7 +422,6 @@ export default function ChatRoom({ userId, username }: { userId: string; usernam
           replyingTo={replyingTo}
           onCancelReply={() => setReplyingTo(null)}
         />
-      </div>
-    </main>
+    </div>
   );
 }
