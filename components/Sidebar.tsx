@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Conversation, displayName, LOBBY } from "@/lib/conversations";
 import { avatarUrlForUser, colorForUser } from "@/lib/avatar";
 import { getTheme, toggleTheme, type Theme } from "@/lib/theme";
@@ -149,6 +150,14 @@ export default function Sidebar({
       </div>
 
       <div className="flex-1 overflow-y-auto p-2 space-y-3">
+        <Link
+          href="/library"
+          className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-left transition bg-gradient-to-r from-sky/40 to-mint/40 hover:from-sky/60 hover:to-mint/60 border-2 border-ink on-accent font-bold"
+        >
+          <span className="w-7 h-7 rounded-full flex items-center justify-center text-sm border-2 border-ink bg-white">📚</span>
+          <span className="truncate flex-1">My Lib</span>
+        </Link>
+
         <ConvRow c={LOBBY} />
 
         <div>
