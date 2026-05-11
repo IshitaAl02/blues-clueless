@@ -474,6 +474,7 @@ export default function ChatRoom({
           onDelete={deleteMessage}
           onReply={setReplyingTo}
           onReact={toggleReaction}
+          replyingTo={replyingTo}
         />
         <MessageInput
           onSend={send}

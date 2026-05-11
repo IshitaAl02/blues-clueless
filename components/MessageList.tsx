@@ -54,6 +54,7 @@ export default function MessageList({
   onDelete,
   onReply,
   onReact,
+  replyingTo,
 }: {
   messages: ChatMessage[];
   myUserId: string;
@@ -66,6 +67,7 @@ export default function MessageList({
   onDelete: (id: string) => void;
   onReply: (ref: ReplyRef) => void;
   onReact: (messageId: string, emoji: string) => void;
+  replyingTo: ReplyRef | null;
 }) {
   const QUICK_REACTIONS = ["❤️", "😂", "👍", "😮", "🐾"];
   const ref = useRef<HTMLDivElement>(null);
@@ -111,6 +113,17 @@ export default function MessageList({
       setShowScrollDown(true);
     }
   }, [messages.length, typingUsers.length]);
+
+  // When the user starts a reply, jump them straight to the bottom so the
+  // input is in view — no need to click the down-arrow.
+  useEffect(() => {
+    if (!replyingTo) return;
+    const el = ref.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    setUnseenCount(0);
+    setShowScrollDown(false);
+  }, [replyingTo]);
 
   function jumpToBottom() {
     const el = ref.current;
