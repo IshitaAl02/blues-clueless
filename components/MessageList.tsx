@@ -72,18 +72,53 @@ export default function MessageList({
   const initialJumpDone = useRef(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
+  const [showScrollDown, setShowScrollDown] = useState(false);
+  const [unseenCount, setUnseenCount] = useState(0);
 
-  // First time messages land for this conversation → jump instantly to the bottom.
-  // Subsequent new messages animate smoothly.
+  function isNearBottom(el: HTMLDivElement, threshold = 120) {
+    return el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
+  }
+
+  // Track scroll position to decide whether the "jump to latest" arrow should show.
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    el.scrollTo({
-      top: el.scrollHeight,
-      behavior: initialJumpDone.current ? "smooth" : "auto",
-    });
-    if (messages.length > 0) initialJumpDone.current = true;
+    function onScroll() {
+      if (!el) return;
+      const nearBottom = isNearBottom(el);
+      setShowScrollDown(!nearBottom);
+      if (nearBottom) setUnseenCount(0);
+    }
+    el.addEventListener("scroll", onScroll);
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // First time messages land for this conversation → jump instantly to the bottom.
+  // Subsequent new messages: only auto-scroll if user is near the bottom.
+  // Otherwise, surface a "new messages" arrow button.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (!initialJumpDone.current) {
+      el.scrollTo({ top: el.scrollHeight, behavior: "auto" });
+      if (messages.length > 0) initialJumpDone.current = true;
+      return;
+    }
+    if (isNearBottom(el)) {
+      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    } else {
+      setUnseenCount((n) => n + 1);
+      setShowScrollDown(true);
+    }
   }, [messages.length, typingUsers.length]);
+
+  function jumpToBottom() {
+    const el = ref.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    setUnseenCount(0);
+    setShowScrollDown(false);
+  }
 
   // Find the index of the last message I sent — that's where we show "seen by"
   let lastMineIdx = -1;
@@ -118,6 +153,7 @@ export default function MessageList({
   }
 
   return (
+    <div className="flex-1 relative min-h-0 flex flex-col">
     <div ref={ref} className="flex-1 overflow-y-auto p-4 space-y-3">
       {messages.length === 0 && (
         <div className="text-center opacity-60 italic mt-10">
@@ -325,6 +361,23 @@ export default function MessageList({
           <span><span className="typing-dot" /><span className="typing-dot" /><span className="typing-dot" /></span>
         </div>
       )}
+    </div>
+    {showScrollDown && (
+      <button
+        type="button"
+        onClick={jumpToBottom}
+        className="absolute bottom-4 right-4 z-10 flex items-center gap-1 bg-white border-2 border-ink rounded-full px-3 py-1.5 shadow-popSm hover:bg-mint transition"
+        title="Jump to latest"
+        aria-label="Jump to latest message"
+      >
+        <span className="text-base leading-none">↓</span>
+        {unseenCount > 0 && (
+          <span className="text-[11px] font-bold bg-mint border border-ink rounded-full px-1.5 leading-tight">
+            {unseenCount > 99 ? "99+" : unseenCount}
+          </span>
+        )}
+      </button>
+    )}
     </div>
   );
 }

@@ -76,6 +76,16 @@ export default function MessageInput({
     });
   }
 
+  // Auto-focus on mount so the user can start typing immediately
+  useEffect(() => {
+    taRef.current?.focus();
+  }, []);
+
+  // Re-focus when reply target changes (so replying jumps straight to typing)
+  useEffect(() => {
+    if (replyingTo) taRef.current?.focus();
+  }, [replyingTo]);
+
   useEffect(() => {
     function onClick(e: MouseEvent) {
       if (popRef.current && !popRef.current.contains(e.target as Node)) {
@@ -100,6 +110,8 @@ export default function MessageInput({
     }
     setText("");
     setPending(null);
+    // Keep focus on the input after sending so user can keep typing
+    requestAnimationFrame(() => taRef.current?.focus());
   }
 
   async function attachImageFile(f: File) {
@@ -269,6 +281,10 @@ export default function MessageInput({
           ref={taRef}
           className="field flex-1 resize-none min-w-0 !px-2 sm:!px-4 !py-1.5 sm:!py-2.5"
           rows={1}
+          autoFocus
+          spellCheck
+          autoCorrect="on"
+          autoCapitalize="sentences"
           placeholder={pending ? "Add a caption…" : "Got a clue? Type it (or paste an image)…"}
           value={text}
           onChange={(e) => {
