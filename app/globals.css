@@ -44,6 +44,35 @@
 
 html, body { height: 100%; }
 
+/* Scrollbar — themed for both light and dark */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(9, 60, 93, 0.35) transparent;
+}
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: rgba(9, 60, 93, 0.35);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(9, 60, 93, 0.6);
+  background-clip: padding-box;
+}
+:root.dark * {
+  scrollbar-color: rgba(230, 241, 251, 0.25) transparent;
+}
+:root.dark *::-webkit-scrollbar-thumb {
+  background: rgba(230, 241, 251, 0.25);
+  background-clip: padding-box;
+}
+:root.dark *::-webkit-scrollbar-thumb:hover {
+  background: rgba(230, 241, 251, 0.5);
+  background-clip: padding-box;
+}
+
 body {
   font-family: "Quicksand", system-ui, sans-serif;
   color: var(--text);

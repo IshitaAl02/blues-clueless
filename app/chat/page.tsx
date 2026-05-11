@@ -106,7 +106,10 @@ export default function ChatPage() {
         const row = payload.new;
         if (!row) return;
         if (row.user_id === userId) return; // my own message
-        if (row.conversation_id === activeIdRef.current && document.hasFocus()) return;
+        // If the message belongs to the conversation we're currently viewing, don't bump unread.
+        // The user is looking at it (or will see it as soon as they refocus the tab — and we
+        // also clear on focus below).
+        if (row.conversation_id === activeIdRef.current) return;
         setUnreadByConv((prev) => ({
           ...prev,
           [row.conversation_id]: (prev[row.conversation_id] ?? 0) + 1,
@@ -119,6 +122,27 @@ export default function ChatPage() {
       supabase.removeChannel(channel);
     };
   }, [userId]);
+
+  // When the active conversation changes, clear its unread badge.
+  // Also clear when the window regains focus while a conversation is open.
+  useEffect(() => {
+    setUnreadByConv((prev) => {
+      if (!prev[active.id]) return prev;
+      const next = { ...prev };
+      delete next[active.id];
+      return next;
+    });
+    function onFocus() {
+      setUnreadByConv((prev) => {
+        if (!prev[activeIdRef.current]) return prev;
+        const next = { ...prev };
+        delete next[activeIdRef.current];
+        return next;
+      });
+    }
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [active.id]);
 
   function selectConversation(c: Conversation) {
     setActive(c);
