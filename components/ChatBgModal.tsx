@@ -2,25 +2,32 @@
 
 import { useEffect, useRef, useState } from "react";
 import Modal from "./Modal";
-import { THEMES } from "@/lib/library";
+import { PALETTE, THEMES, Theme } from "@/lib/library";
 
 export default function ChatBgModal({
   open,
   initialBg,
   initialImage,
+  initialText,
   onClose,
+  onSaveTheme,
   onSaveBg,
+  onSaveText,
   onSaveImage,
 }: {
   open: boolean;
   initialBg: string | null;
   initialImage: string | null;
+  initialText: string | null;
   onClose: () => void;
+  onSaveTheme: (t: Theme) => Promise<void>;
   onSaveBg: (bg: string | null) => Promise<void>;
+  onSaveText: (text: string | null) => Promise<void>;
   onSaveImage: (img: string | null) => Promise<void>;
 }) {
   const [bg, setBg] = useState("");
   const [imgUrl, setImgUrl] = useState("");
+  const [textColor, setTextColor] = useState("");
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -28,12 +35,17 @@ export default function ChatBgModal({
     if (!open) return;
     setBg(initialBg ?? "");
     setImgUrl(initialImage ?? "");
-  }, [open, initialBg, initialImage]);
+    setTextColor(initialText ?? "");
+  }, [open, initialBg, initialImage, initialText]);
 
-  async function pickPreset(value: string) {
+  async function pickTheme(t: Theme) {
     setBusy(true);
-    try { await onSaveBg(value); await onSaveImage(null); onClose(); }
-    finally { setBusy(false); }
+    try { await onSaveTheme(t); onClose(); } finally { setBusy(false); }
+  }
+
+  async function saveTextOnly(value: string | null) {
+    setBusy(true);
+    try { await onSaveText(value); onClose(); } finally { setBusy(false); }
   }
 
   async function saveCustomBg(value: string | null) {
@@ -56,8 +68,10 @@ export default function ChatBgModal({
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Chat background 🎨">
-      <p className="text-sm opacity-70 mb-3">Pick a preset, drop in a gradient, or upload an image.</p>
+    <Modal open={open} onClose={onClose} title="Chat theme 🎨">
+      <p className="text-sm opacity-70 mb-3">
+        Pick a theme — page background <em>and</em> text color update together. Or set each one yourself below.
+      </p>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
         {THEMES.map((t) => (
@@ -65,7 +79,7 @@ export default function ChatBgModal({
             key={t.key}
             type="button"
             disabled={busy}
-            onClick={() => pickPreset(t.page_bg)}
+            onClick={() => pickTheme(t)}
             className="rounded-2xl border-2 border-ink/40 p-2 text-left transition hover:scale-[1.02]"
             style={{ background: t.page_bg }}
           >
@@ -78,6 +92,48 @@ export default function ChatBgModal({
           </button>
         ))}
       </div>
+
+      <details className="mb-3">
+        <summary className="text-sm font-bold cursor-pointer">🅰 Text color</summary>
+        <p className="text-xs opacity-70 mt-2 mb-2">Applies to chat headers, message bubbles, and sidebar labels.</p>
+        <div className="flex items-center gap-2 mb-2">
+          <input
+            type="color"
+            value={/^#[0-9a-f]{6}$/i.test(textColor) ? textColor : "#093C5D"}
+            onChange={(e) => setTextColor(e.target.value)}
+            className="w-10 h-10 rounded border-2 border-ink cursor-pointer"
+          />
+          <input
+            className="field"
+            placeholder="#hex"
+            value={textColor}
+            onChange={(e) => setTextColor(e.target.value)}
+          />
+        </div>
+        <div className="grid grid-cols-10 gap-1.5 mb-2">
+          {PALETTE.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => setTextColor(c)}
+              className={`w-7 h-7 rounded-full border-2 transition ${
+                textColor.toLowerCase() === c.toLowerCase() ? "border-ink scale-110 shadow-popSm" : "border-ink/40 hover:scale-105"
+              }`}
+              style={{ background: c }}
+              aria-label={c}
+              title={c}
+            />
+          ))}
+        </div>
+        <div className="rounded-xl border-2 border-ink p-3 mb-2" style={{ color: textColor || undefined }}>
+          <div className="font-display text-lg">The quick brown fox 🦊</div>
+          <div className="text-sm opacity-80">jumps over the lazy dog.</div>
+        </div>
+        <div className="flex justify-between gap-2">
+          <button className="btn-ghost !py-1 !px-3 text-xs" onClick={() => saveTextOnly(null)} disabled={busy}>Reset</button>
+          <button className="btn-primary !py-1 !px-3 text-xs" onClick={() => saveTextOnly(textColor || null)} disabled={busy}>Save text</button>
+        </div>
+      </details>
 
       <details className="mb-3">
         <summary className="text-sm font-bold cursor-pointer">🖼 Background image</summary>

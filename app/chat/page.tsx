@@ -9,7 +9,7 @@ import { NewGroupModal, NewDMModal } from "@/components/ConversationModals";
 import ProfileModal from "@/components/ProfileModal";
 import GroupSettingsModal from "@/components/GroupSettingsModal";
 import ChatBgModal from "@/components/ChatBgModal";
-import { getPrefs, setChatBg, setChatImage } from "@/lib/library";
+import { getPrefs, setChatBg, setChatImage, setChatText, setChatTheme } from "@/lib/library";
 import { Conversation, LOBBY, listConversations } from "@/lib/conversations";
 import { getSavedSeed, onSeedChange, loadMySeedFromDb } from "@/lib/profile";
 import { fetchAllProfiles, ProfileMap, subscribeProfiles } from "@/lib/profilesCache";
@@ -29,6 +29,7 @@ export default function ChatPage() {
   const [showBg, setShowBg] = useState(false);
   const [chatBg, setChatBgState] = useState<string | null>(null);
   const [chatImage, setChatImageState] = useState<string | null>(null);
+  const [chatText, setChatTextState] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [myAvatarSeed, setMyAvatarSeed] = useState<string>("");
   const [profiles, setProfiles] = useState<ProfileMap>({});
@@ -61,6 +62,7 @@ export default function ChatPage() {
         const prefs = await getPrefs(uid);
         setChatBgState(prefs?.chat_bg ?? null);
         setChatImageState(prefs?.chat_image ?? null);
+        setChatTextState(prefs?.chat_text ?? null);
       } catch {}
     })();
   }, [router]);
@@ -199,13 +201,14 @@ export default function ChatPage() {
   return (
     <main
       className="min-h-[100dvh] flex justify-center p-0 sm:p-4 lg:p-6"
-      style={
-        chatImage
+      style={{
+        ...(chatImage
           ? { backgroundImage: `url(${chatImage})`, backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "fixed" }
           : chatBg
           ? { background: chatBg, backgroundAttachment: "fixed" }
-          : undefined
-      }
+          : {}),
+        ...(chatText ? ({ ["--text" as any]: chatText, ["--ink" as any]: chatText, color: chatText } as React.CSSProperties) : {}),
+      }}
     >
       <div className="flex gap-0 lg:gap-3 w-full max-w-6xl h-[100dvh] sm:h-[92vh] relative">
         <Sidebar
@@ -268,8 +271,16 @@ export default function ChatPage() {
         open={showBg}
         initialBg={chatBg}
         initialImage={chatImage}
+        initialText={chatText}
         onClose={() => setShowBg(false)}
+        onSaveTheme={async (t) => {
+          await setChatTheme(userId, { chat_bg: t.page_bg, chat_text: t.card_text, chat_image: null });
+          setChatBgState(t.page_bg);
+          setChatTextState(t.card_text);
+          setChatImageState(null);
+        }}
         onSaveBg={async (v) => { await setChatBg(userId, v); setChatBgState(v); }}
+        onSaveText={async (v) => { await setChatText(userId, v); setChatTextState(v); }}
         onSaveImage={async (v) => { await setChatImage(userId, v); setChatImageState(v); }}
       />
       <GroupSettingsModal

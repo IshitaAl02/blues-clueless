@@ -32,6 +32,7 @@ export interface LibraryPrefs {
   theme_key: string | null;
   chat_bg: string | null;
   chat_image: string | null;
+  chat_text: string | null;
 }
 
 export function hexA(hex: string, alpha: number): string {
@@ -184,6 +185,23 @@ export async function setChatImage(userId: string, chat_image: string | null) {
   const { error } = await supabase
     .from("library_prefs")
     .upsert({ user_id: userId, chat_image, updated_at: new Date().toISOString() });
+  if (error) throw error;
+}
+
+export async function setChatText(userId: string, chat_text: string | null) {
+  const { error } = await supabase
+    .from("library_prefs")
+    .upsert({ user_id: userId, chat_text, updated_at: new Date().toISOString() });
+  if (error) throw error;
+}
+
+export async function setChatTheme(
+  userId: string,
+  prefs: { chat_bg: string | null; chat_text: string | null; chat_image: string | null }
+) {
+  const { error } = await supabase
+    .from("library_prefs")
+    .upsert({ user_id: userId, ...prefs, updated_at: new Date().toISOString() });
   if (error) throw error;
 }
 
