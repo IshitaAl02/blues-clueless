@@ -79,46 +79,80 @@ export default function MessageList({
   const [showScrollDown, setShowScrollDown] = useState(false);
   const [unseenCount, setUnseenCount] = useState(0);
 
-  function isNearBottom(el: HTMLDivElement, threshold = 120) {
+  // Hysteresis: once you're within ~240px we treat you as "at the bottom" and
+  // hide the jump button; you have to scroll up past ~280px before the button
+  // reappears. This stops the button + scrollbar from flickering when the
+  // typing indicator pops in/out or content height shifts by a few pixels.
+  function isNearBottom(el: HTMLDivElement, threshold = 240) {
     return el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
   }
+  const programmaticScroll = useRef(false);
 
   // Track scroll position to decide whether the "jump to latest" arrow should show.
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    let raf = 0;
     function onScroll() {
       if (!el) return;
-      const nearBottom = isNearBottom(el);
-      setShowScrollDown(!nearBottom);
-      if (nearBottom) setUnseenCount(0);
+      // Ignore scroll events caused by our own smooth-scroll animations.
+      if (programmaticScroll.current) return;
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        if (!el) return;
+        const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
+        const hide = distance < 240;
+        const show = distance > 280;
+        setShowScrollDown((prev) => (hide ? false : show ? true : prev));
+        if (hide) setUnseenCount((n) => (n === 0 ? n : 0));
+      });
     }
-    el.addEventListener("scroll", onScroll);
-    return () => el.removeEventListener("scroll", onScroll);
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
   }, []);
 
+  function scrollToBottom(el: HTMLDivElement, smooth: boolean) {
+    programmaticScroll.current = true;
+    el.scrollTo({ top: el.scrollHeight, behavior: smooth ? "smooth" : "auto" });
+    // Release the guard after the smooth-scroll animation has finished (~400ms).
+    window.setTimeout(() => { programmaticScroll.current = false; }, smooth ? 450 : 50);
+  }
+
   // First time messages land for this conversation → jump instantly to the bottom.
-  // Subsequent new messages: only auto-scroll if user is near the bottom.
-  // Otherwise, surface a "new messages" arrow button.
+  // Subsequent new messages: only auto-scroll if user is near the bottom
+  // (or actively composing / replying). Otherwise, surface the arrow button.
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     if (!initialJumpDone.current) {
-      el.scrollTo({ top: el.scrollHeight, behavior: "auto" });
+      scrollToBottom(el, false);
       if (messages.length > 0) initialJumpDone.current = true;
       return;
     }
-    // While the user is actively composing (input focused) or has a reply queued,
-    // always follow incoming messages so they can see the conversation in real time.
     if (composing || replyingTo || isNearBottom(el)) {
-      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-      setUnseenCount(0);
-      setShowScrollDown(false);
+      scrollToBottom(el, true);
+      setUnseenCount((n) => (n === 0 ? n : 0));
+      setShowScrollDown((s) => (s ? false : s));
     } else {
       setUnseenCount((n) => n + 1);
-      setShowScrollDown(true);
+      setShowScrollDown((s) => (s ? s : true));
     }
-  }, [messages.length, typingUsers.length]);
+    // Intentionally not depending on typingUsers — typing indicator height shifts
+    // are handled by the separate effect below to avoid bouncy double-scrolls.
+  }, [messages.length]);
+
+  // Typing indicator appearing/disappearing changes content height by a few px.
+  // If we were already at the bottom, glue to the bottom instantly (no smooth
+  // animation) so the indicator stays in view without the screen bobbing.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (isNearBottom(el)) scrollToBottom(el, false);
+  }, [typingUsers.length]);
 
   // When the user starts a reply, jump them straight to the bottom so the
   // input is in view — no need to click the down-arrow.
@@ -126,7 +160,7 @@ export default function MessageList({
     if (!replyingTo) return;
     const el = ref.current;
     if (!el) return;
-    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    scrollToBottom(el, true);
     setUnseenCount(0);
     setShowScrollDown(false);
   }, [replyingTo]);
@@ -134,7 +168,7 @@ export default function MessageList({
   function jumpToBottom() {
     const el = ref.current;
     if (!el) return;
-    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    scrollToBottom(el, true);
     setUnseenCount(0);
     setShowScrollDown(false);
   }
