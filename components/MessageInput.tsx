@@ -86,6 +86,11 @@ export default function MessageInput({
     if (replyingTo) taRef.current?.focus();
   }, [replyingTo]);
 
+  // Re-focus when an attachment (image / gif) is staged so the caption field is ready.
+  useEffect(() => {
+    if (pending) taRef.current?.focus();
+  }, [pending]);
+
   useEffect(() => {
     function onClick(e: MouseEvent) {
       if (popRef.current && !popRef.current.contains(e.target as Node)) {
@@ -211,6 +216,7 @@ export default function MessageInput({
             onEmojiClick={(d) => {
               setText((t) => t + d.emoji);
               setShowEmoji(false);
+              requestAnimationFrame(() => taRef.current?.focus());
             }}
             height={350}
             width={300}
