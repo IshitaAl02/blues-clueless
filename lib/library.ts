@@ -33,6 +33,7 @@ export interface LibraryPrefs {
   chat_bg: string | null;
   chat_image: string | null;
   chat_text: string | null;
+  chat_chrome: string | null;
 }
 
 export function hexA(hex: string, alpha: number): string {
@@ -40,6 +41,73 @@ export function hexA(hex: string, alpha: number): string {
   if (!m) return hex;
   const n = parseInt(m[1], 16);
   return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+}
+
+// ─── Color math: derive a coherent palette from a single base color ───
+function hexToRgb(hex: string): [number, number, number] | null {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return null;
+  const n = parseInt(m[1], 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+function rgbToHex(r: number, g: number, b: number): string {
+  const c = (n: number) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, "0");
+  return `#${c(r)}${c(g)}${c(b)}`;
+}
+function srgbToLin(c: number) {
+  const x = c / 255;
+  return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4);
+}
+export function relativeLuminance(hex: string): number {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return 0.5;
+  const [r, g, b] = rgb.map(srgbToLin) as [number, number, number];
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+// Choose a readable text color (dark navy or off-white) for any background.
+export function contrastText(bgHex: string, dark = "#0b1f33", light = "#f5fbff"): string {
+  return relativeLuminance(bgHex) > 0.55 ? dark : light;
+}
+function mix(a: string, b: string, t: number): string {
+  const ra = hexToRgb(a), rb = hexToRgb(b);
+  if (!ra || !rb) return a;
+  return rgbToHex(
+    ra[0] + (rb[0] - ra[0]) * t,
+    ra[1] + (rb[1] - ra[1]) * t,
+    ra[2] + (rb[2] - ra[2]) * t,
+  );
+}
+export function lighten(hex: string, amount: number): string {
+  return mix(hex, "#ffffff", amount);
+}
+export function darken(hex: string, amount: number): string {
+  return mix(hex, "#000000", amount);
+}
+
+// Derive a coherent chat palette from a single accent (chrome) color.
+// Caller-supplied chrome/text/bg act as overrides; everything else is computed.
+export interface DerivedChatPalette {
+  chromeBg: string;
+  chromeText: string;
+  bubbleMeBg: string;
+  bubbleMeText: string;
+  accentMine: string;
+  paneTint: string; // soft hint for glass-card backgrounds when no image
+}
+export function deriveChatPalette(opts: {
+  chrome?: string | null;
+  text?: string | null;
+  bg?: string | null;
+}): DerivedChatPalette | null {
+  const chrome = opts.chrome || (opts.bg ? darken(opts.bg, 0.25) : null);
+  if (!chrome || !hexToRgb(chrome)) return null;
+  const isLight = relativeLuminance(chrome) > 0.55;
+  const chromeText = opts.text || contrastText(chrome);
+  const bubbleMeBg = isLight ? darken(chrome, 0.1) : lighten(chrome, 0.05);
+  const bubbleMeText = contrastText(bubbleMeBg);
+  const accentMine = isLight ? lighten(chrome, 0.1) : lighten(chrome, 0.2);
+  const paneTint = isLight ? lighten(chrome, 0.7) : lighten(chrome, 0.85);
+  return { chromeBg: chrome, chromeText, bubbleMeBg, bubbleMeText, accentMine, paneTint };
 }
 
 export interface Theme {
@@ -195,9 +263,16 @@ export async function setChatText(userId: string, chat_text: string | null) {
   if (error) throw error;
 }
 
+export async function setChatChrome(userId: string, chat_chrome: string | null) {
+  const { error } = await supabase
+    .from("library_prefs")
+    .upsert({ user_id: userId, chat_chrome, updated_at: new Date().toISOString() });
+  if (error) throw error;
+}
+
 export async function setChatTheme(
   userId: string,
-  prefs: { chat_bg: string | null; chat_text: string | null; chat_image: string | null }
+  prefs: { chat_bg: string | null; chat_text: string | null; chat_image: string | null; chat_chrome: string | null }
 ) {
   const { error } = await supabase
     .from("library_prefs")

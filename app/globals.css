@@ -152,10 +152,28 @@ h1, h2, h3, .font-display {
 
 /* Bubbles */
 .bubble-me {
-  background: linear-gradient(135deg, #093C5D 0%, #3B7597 100%);
-  color: #ECFCFB;
+  background: var(--bubble-me-bg, linear-gradient(135deg, #093C5D 0%, #3B7597 100%));
+  color: var(--bubble-me-text, #ECFCFB);
   border-radius: 18px 18px 4px 18px;
   box-shadow: 0 3px 0 0 rgba(9,60,93,0.6);
+}
+
+/* Translucent chat — when a background image is set, glass panes + bubbles
+   let the image breathe through. Always frosted-light so text stays readable
+   against busy image backgrounds. */
+.chat-translucent .glass-card {
+  background: rgba(255,255,255,0.78) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: #093C5D;
+}
+.chat-translucent .bubble-them {
+  background: rgba(255,255,255,0.88);
+  color: #093C5D;
+  backdrop-filter: blur(8px);
+}
+.chat-translucent .bubble-me {
+  filter: saturate(1.05);
 }
 .bubble-them {
   background: var(--bubble-them-bg);

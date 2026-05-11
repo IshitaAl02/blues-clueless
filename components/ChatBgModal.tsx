@@ -9,25 +9,30 @@ export default function ChatBgModal({
   initialBg,
   initialImage,
   initialText,
+  initialChrome,
   onClose,
   onSaveTheme,
   onSaveBg,
   onSaveText,
+  onSaveChrome,
   onSaveImage,
 }: {
   open: boolean;
   initialBg: string | null;
   initialImage: string | null;
   initialText: string | null;
+  initialChrome: string | null;
   onClose: () => void;
   onSaveTheme: (t: Theme) => Promise<void>;
   onSaveBg: (bg: string | null) => Promise<void>;
   onSaveText: (text: string | null) => Promise<void>;
+  onSaveChrome: (chrome: string | null) => Promise<void>;
   onSaveImage: (img: string | null) => Promise<void>;
 }) {
   const [bg, setBg] = useState("");
   const [imgUrl, setImgUrl] = useState("");
   const [textColor, setTextColor] = useState("");
+  const [chrome, setChrome] = useState("");
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -36,7 +41,8 @@ export default function ChatBgModal({
     setBg(initialBg ?? "");
     setImgUrl(initialImage ?? "");
     setTextColor(initialText ?? "");
-  }, [open, initialBg, initialImage, initialText]);
+    setChrome(initialChrome ?? "");
+  }, [open, initialBg, initialImage, initialText, initialChrome]);
 
   async function pickTheme(t: Theme) {
     setBusy(true);
@@ -46,6 +52,11 @@ export default function ChatBgModal({
   async function saveTextOnly(value: string | null) {
     setBusy(true);
     try { await onSaveText(value); onClose(); } finally { setBusy(false); }
+  }
+
+  async function saveChromeOnly(value: string | null) {
+    setBusy(true);
+    try { await onSaveChrome(value); onClose(); } finally { setBusy(false); }
   }
 
   async function saveCustomBg(value: string | null) {
@@ -92,6 +103,50 @@ export default function ChatBgModal({
           </button>
         ))}
       </div>
+
+      <details className="mb-3">
+        <summary className="text-sm font-bold cursor-pointer">🪟 Header / chrome color</summary>
+        <p className="text-xs opacity-70 mt-2 mb-2">Color of the top header strip and the “you” chip on your messages.</p>
+        <div className="flex items-center gap-2 mb-2">
+          <input
+            type="color"
+            value={/^#[0-9a-f]{6}$/i.test(chrome) ? chrome : "#5DF8D8"}
+            onChange={(e) => setChrome(e.target.value)}
+            className="w-10 h-10 rounded border-2 border-ink cursor-pointer"
+          />
+          <input
+            className="field"
+            placeholder="#hex"
+            value={chrome}
+            onChange={(e) => setChrome(e.target.value)}
+          />
+        </div>
+        <div className="grid grid-cols-10 gap-1.5 mb-2">
+          {PALETTE.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => setChrome(c)}
+              className={`w-7 h-7 rounded-full border-2 transition ${
+                chrome.toLowerCase() === c.toLowerCase() ? "border-ink scale-110 shadow-popSm" : "border-ink/40 hover:scale-105"
+              }`}
+              style={{ background: c }}
+              aria-label={c}
+              title={c}
+            />
+          ))}
+        </div>
+        <div
+          className="rounded-xl border-2 border-ink p-3 mb-2 font-bold"
+          style={{ background: chrome || "linear-gradient(135deg,#5DF8D8,#6FD1D7)", color: textColor || "#093C5D" }}
+        >
+          Header preview
+        </div>
+        <div className="flex justify-between gap-2">
+          <button className="btn-ghost !py-1 !px-3 text-xs" onClick={() => saveChromeOnly(null)} disabled={busy}>Reset</button>
+          <button className="btn-primary !py-1 !px-3 text-xs" onClick={() => saveChromeOnly(chrome || null)} disabled={busy}>Save chrome</button>
+        </div>
+      </details>
 
       <details className="mb-3">
         <summary className="text-sm font-bold cursor-pointer">🅰 Text color</summary>

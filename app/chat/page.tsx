@@ -9,7 +9,7 @@ import { NewGroupModal, NewDMModal } from "@/components/ConversationModals";
 import ProfileModal from "@/components/ProfileModal";
 import GroupSettingsModal from "@/components/GroupSettingsModal";
 import ChatBgModal from "@/components/ChatBgModal";
-import { getPrefs, setChatBg, setChatImage, setChatText, setChatTheme } from "@/lib/library";
+import { deriveChatPalette, getPrefs, setChatBg, setChatChrome, setChatImage, setChatText, setChatTheme } from "@/lib/library";
 import { Conversation, LOBBY, listConversations } from "@/lib/conversations";
 import { getSavedSeed, onSeedChange, loadMySeedFromDb } from "@/lib/profile";
 import { fetchAllProfiles, ProfileMap, subscribeProfiles } from "@/lib/profilesCache";
@@ -30,6 +30,7 @@ export default function ChatPage() {
   const [chatBg, setChatBgState] = useState<string | null>(null);
   const [chatImage, setChatImageState] = useState<string | null>(null);
   const [chatText, setChatTextState] = useState<string | null>(null);
+  const [chatChrome, setChatChromeState] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [myAvatarSeed, setMyAvatarSeed] = useState<string>("");
   const [profiles, setProfiles] = useState<ProfileMap>({});
@@ -63,6 +64,7 @@ export default function ChatPage() {
         setChatBgState(prefs?.chat_bg ?? null);
         setChatImageState(prefs?.chat_image ?? null);
         setChatTextState(prefs?.chat_text ?? null);
+        setChatChromeState(prefs?.chat_chrome ?? null);
       } catch {}
     })();
   }, [router]);
@@ -189,6 +191,17 @@ export default function ChatPage() {
     router.replace("/login");
   }
 
+  const palette = deriveChatPalette({ chrome: chatChrome, text: chatText, bg: chatBg });
+  const themeVars: React.CSSProperties = palette
+    ? ({
+        ["--chrome-bg" as any]: palette.chromeBg,
+        ["--chrome-text" as any]: palette.chromeText,
+        ["--bubble-me-bg" as any]: palette.bubbleMeBg,
+        ["--bubble-me-text" as any]: palette.bubbleMeText,
+        ["--accent-mine" as any]: palette.accentMine,
+      } as React.CSSProperties)
+    : {};
+
   if (err) return <main className="p-6 text-center">{err}</main>;
   if (!userId || !username) {
     return (
@@ -200,14 +213,14 @@ export default function ChatPage() {
 
   return (
     <main
-      className="min-h-[100dvh] flex justify-center p-0 sm:p-4 lg:p-6"
+      className={`min-h-[100dvh] flex justify-center p-0 sm:p-4 lg:p-6 ${chatImage ? "chat-translucent" : ""}`}
       style={{
         ...(chatImage
           ? { backgroundImage: `url(${chatImage})`, backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "fixed" }
           : chatBg
           ? { background: chatBg, backgroundAttachment: "fixed" }
           : {}),
-        ...(chatText ? ({ ["--text" as any]: chatText, ["--ink" as any]: chatText, color: chatText } as React.CSSProperties) : {}),
+        ...themeVars,
       }}
     >
       <div className="flex gap-0 lg:gap-3 w-full max-w-6xl h-[100dvh] sm:h-[92vh] relative">
@@ -272,15 +285,18 @@ export default function ChatPage() {
         initialBg={chatBg}
         initialImage={chatImage}
         initialText={chatText}
+        initialChrome={chatChrome}
         onClose={() => setShowBg(false)}
         onSaveTheme={async (t) => {
-          await setChatTheme(userId, { chat_bg: t.page_bg, chat_text: t.card_text, chat_image: null });
+          await setChatTheme(userId, { chat_bg: t.page_bg, chat_text: t.card_text, chat_image: null, chat_chrome: t.card_bg });
           setChatBgState(t.page_bg);
           setChatTextState(t.card_text);
+          setChatChromeState(t.card_bg);
           setChatImageState(null);
         }}
         onSaveBg={async (v) => { await setChatBg(userId, v); setChatBgState(v); }}
         onSaveText={async (v) => { await setChatText(userId, v); setChatTextState(v); }}
+        onSaveChrome={async (v) => { await setChatChrome(userId, v); setChatChromeState(v); }}
         onSaveImage={async (v) => { await setChatImage(userId, v); setChatImageState(v); }}
       />
       <GroupSettingsModal

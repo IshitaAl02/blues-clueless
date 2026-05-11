@@ -247,9 +247,9 @@ export default function MessageList({
                   <span
                     className={`px-2 py-0.5 rounded-full ${mine ? "on-accent" : ""}`}
                     style={{
-                      background: mine ? "#5DF8D8" : `${accent}22`,
-                      border: `1.5px solid ${mine ? "#093C5D" : accent}`,
-                      color: mine ? undefined : accent,
+                      background: mine ? "var(--accent-mine, #5DF8D8)" : `${accent}22`,
+                      border: `1.5px solid ${mine ? "var(--chrome-text, #093C5D)" : accent}`,
+                      color: mine ? "var(--chrome-text, #093C5D)" : accent,
                     }}
                   >
                     {m.username}{mine && " (you)"}

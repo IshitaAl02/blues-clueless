@@ -370,7 +370,10 @@ export default function ChatRoom({
 
       <header
         className="flex items-center justify-between px-4 py-3 border-b-2 border-ink on-accent"
-        style={{ background: "linear-gradient(135deg, #5DF8D8 0%, #6FD1D7 100%)" }}
+        style={{
+          background: "var(--chrome-bg, linear-gradient(135deg, #5DF8D8 0%, #6FD1D7 100%))",
+          color: "var(--chrome-text, #093C5D)",
+        }}
       >
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             {onOpenSidebar && (

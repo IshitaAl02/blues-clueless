@@ -116,7 +116,10 @@ export default function Sidebar({
         ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
       `}
     >
-      <div className="px-3 py-3 border-b-2 border-ink flex items-center gap-2 bg-gradient-to-br from-mint to-sky relative on-accent">
+      <div
+        className="px-3 py-3 border-b-2 border-ink flex items-center gap-2 relative on-accent"
+        style={{ background: "var(--chrome-bg, linear-gradient(135deg,#5DF8D8 0%,#6FD1D7 100%))", color: "var(--chrome-text, #093C5D)" }}
+      >
         <PawLogo size={32} />
         <div className="leading-tight flex-1 min-w-0">
           <div className="font-display text-lg truncate">Blue's Clueless</div>
