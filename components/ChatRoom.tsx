@@ -43,6 +43,7 @@ export default function ChatRoom({
   const [focused, setFocused] = useState(true);
   const [notifEnabled, setNotifEnabled] = useState(false);
   const [replyingTo, setReplyingTo] = useState<ReplyRef | null>(null);
+  const [composing, setComposing] = useState(false);
 
   const convLabel = displayName(conversation, userId);
 
@@ -475,6 +476,7 @@ export default function ChatRoom({
           onReply={setReplyingTo}
           onReact={toggleReaction}
           replyingTo={replyingTo}
+          composing={composing}
         />
         <MessageInput
           onSend={send}
@@ -482,6 +484,7 @@ export default function ChatRoom({
           replyingTo={replyingTo}
           onCancelReply={() => setReplyingTo(null)}
           mentionCandidates={mentionCandidates}
+          onComposingChange={setComposing}
         />
     </div>
   );

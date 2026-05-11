@@ -55,6 +55,7 @@ export default function MessageList({
   onReply,
   onReact,
   replyingTo,
+  composing,
 }: {
   messages: ChatMessage[];
   myUserId: string;
@@ -68,6 +69,7 @@ export default function MessageList({
   onReply: (ref: ReplyRef) => void;
   onReact: (messageId: string, emoji: string) => void;
   replyingTo: ReplyRef | null;
+  composing: boolean;
 }) {
   const QUICK_REACTIONS = ["❤️", "😂", "👍", "😮", "🐾"];
   const ref = useRef<HTMLDivElement>(null);
@@ -106,8 +108,12 @@ export default function MessageList({
       if (messages.length > 0) initialJumpDone.current = true;
       return;
     }
-    if (isNearBottom(el)) {
+    // While the user is actively composing (input focused) or has a reply queued,
+    // always follow incoming messages so they can see the conversation in real time.
+    if (composing || replyingTo || isNearBottom(el)) {
       el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+      setUnseenCount(0);
+      setShowScrollDown(false);
     } else {
       setUnseenCount((n) => n + 1);
       setShowScrollDown(true);

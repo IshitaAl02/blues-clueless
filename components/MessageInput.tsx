@@ -23,12 +23,14 @@ export default function MessageInput({
   replyingTo,
   onCancelReply,
   mentionCandidates,
+  onComposingChange,
 }: {
   onSend: (m: Outbound) => void;
   onTyping: () => void;
   replyingTo: ReplyRef | null;
   onCancelReply: () => void;
   mentionCandidates: MentionCandidate[];
+  onComposingChange?: (composing: boolean) => void;
 }) {
   const [text, setText] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
@@ -306,6 +308,8 @@ export default function MessageInput({
             const t = e.currentTarget;
             updateMentionFromCaret(t.value, t.selectionStart ?? t.value.length);
           }}
+          onFocus={() => onComposingChange?.(true)}
+          onBlur={() => onComposingChange?.(false)}
           onPaste={handlePaste}
           onKeyDown={(e) => {
             // Mention dropdown navigation
