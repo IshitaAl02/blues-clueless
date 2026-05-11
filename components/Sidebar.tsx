@@ -23,6 +23,7 @@ export default function Sidebar({
   onNewDM,
   onOpenProfile,
   onLogout,
+  onOpenBg,
 }: {
   conversations: Conversation[];
   activeId: string;
@@ -38,6 +39,7 @@ export default function Sidebar({
   onNewDM: () => void;
   onOpenProfile: () => void;
   onLogout: () => void;
+  onOpenBg?: () => void;
 }) {
   const groups = conversations.filter((c) => c.kind === "group");
   const dms = conversations.filter((c) => c.kind === "dm");
@@ -192,6 +194,14 @@ export default function Sidebar({
             <div className="text-sm font-bold truncate">{myUsername}</div>
           </div>
         </button>
+        {onOpenBg && (
+          <button
+            onClick={onOpenBg}
+            className="btn-ghost !py-1 !px-2 text-base shrink-0"
+            title="Chat background"
+            aria-label="Chat background"
+          >🎨</button>
+        )}
         <button
           onClick={() => setThemeState(toggleTheme())}
           className="btn-ghost !py-1 !px-2 text-base shrink-0"

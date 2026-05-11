@@ -30,6 +30,8 @@ export interface LibraryPrefs {
   card_bg: string | null;
   card_text: string | null;
   theme_key: string | null;
+  chat_bg: string | null;
+  chat_image: string | null;
 }
 
 export function hexA(hex: string, alpha: number): string {
@@ -168,6 +170,20 @@ export async function setPageImage(userId: string, page_image: string | null) {
   const { error } = await supabase
     .from("library_prefs")
     .upsert({ user_id: userId, page_image, updated_at: new Date().toISOString() });
+  if (error) throw error;
+}
+
+export async function setChatBg(userId: string, chat_bg: string | null) {
+  const { error } = await supabase
+    .from("library_prefs")
+    .upsert({ user_id: userId, chat_bg, updated_at: new Date().toISOString() });
+  if (error) throw error;
+}
+
+export async function setChatImage(userId: string, chat_image: string | null) {
+  const { error } = await supabase
+    .from("library_prefs")
+    .upsert({ user_id: userId, chat_image, updated_at: new Date().toISOString() });
   if (error) throw error;
 }
 

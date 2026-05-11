@@ -8,6 +8,8 @@ import Sidebar from "@/components/Sidebar";
 import { NewGroupModal, NewDMModal } from "@/components/ConversationModals";
 import ProfileModal from "@/components/ProfileModal";
 import GroupSettingsModal from "@/components/GroupSettingsModal";
+import ChatBgModal from "@/components/ChatBgModal";
+import { getPrefs, setChatBg, setChatImage } from "@/lib/library";
 import { Conversation, LOBBY, listConversations } from "@/lib/conversations";
 import { getSavedSeed, onSeedChange, loadMySeedFromDb } from "@/lib/profile";
 import { fetchAllProfiles, ProfileMap, subscribeProfiles } from "@/lib/profilesCache";
@@ -24,6 +26,9 @@ export default function ChatPage() {
   const [showNewDM, setShowNewDM] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showGroupSettings, setShowGroupSettings] = useState(false);
+  const [showBg, setShowBg] = useState(false);
+  const [chatBg, setChatBgState] = useState<string | null>(null);
+  const [chatImage, setChatImageState] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [myAvatarSeed, setMyAvatarSeed] = useState<string>("");
   const [profiles, setProfiles] = useState<ProfileMap>({});
@@ -52,6 +57,11 @@ export default function ChatPage() {
       if (!name) { setErr("Couldn't determine username."); return; }
       setUserId(uid);
       setUsername(name);
+      try {
+        const prefs = await getPrefs(uid);
+        setChatBgState(prefs?.chat_bg ?? null);
+        setChatImageState(prefs?.chat_image ?? null);
+      } catch {}
     })();
   }, [router]);
 
@@ -187,7 +197,16 @@ export default function ChatPage() {
   }
 
   return (
-    <main className="min-h-[100dvh] flex justify-center p-0 sm:p-4 lg:p-6">
+    <main
+      className="min-h-[100dvh] flex justify-center p-0 sm:p-4 lg:p-6"
+      style={
+        chatImage
+          ? { backgroundImage: `url(${chatImage})`, backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "fixed" }
+          : chatBg
+          ? { background: chatBg, backgroundAttachment: "fixed" }
+          : undefined
+      }
+    >
       <div className="flex gap-0 lg:gap-3 w-full max-w-6xl h-[100dvh] sm:h-[92vh] relative">
         <Sidebar
           conversations={conversations}
@@ -203,6 +222,7 @@ export default function ChatPage() {
           onNewGroup={() => setShowNewGroup(true)}
           onNewDM={() => setShowNewDM(true)}
           onOpenProfile={() => setShowProfile(true)}
+          onOpenBg={() => setShowBg(true)}
           onLogout={handleLogout}
         />
 
@@ -243,6 +263,14 @@ export default function ChatPage() {
         onClose={() => setShowProfile(false)}
         username={username}
         userId={userId}
+      />
+      <ChatBgModal
+        open={showBg}
+        initialBg={chatBg}
+        initialImage={chatImage}
+        onClose={() => setShowBg(false)}
+        onSaveBg={async (v) => { await setChatBg(userId, v); setChatBgState(v); }}
+        onSaveImage={async (v) => { await setChatImage(userId, v); setChatImageState(v); }}
       />
       <GroupSettingsModal
         open={showGroupSettings}
