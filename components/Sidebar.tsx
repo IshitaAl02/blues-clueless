@@ -45,7 +45,9 @@ export default function Sidebar({
   const dms = conversations.filter((c) => c.kind === "dm");
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [footerMenuOpen, setFooterMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const footerMenuRef = useRef<HTMLDivElement>(null);
   const [theme, setThemeState] = useState<Theme>("light");
   useEffect(() => { setThemeState(getTheme()); }, []);
 
@@ -54,10 +56,13 @@ export default function Sidebar({
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setMenuOpen(false);
       }
+      if (footerMenuRef.current && !footerMenuRef.current.contains(e.target as Node)) {
+        setFooterMenuOpen(false);
+      }
     }
-    if (menuOpen) document.addEventListener("mousedown", onClick);
+    if (menuOpen || footerMenuOpen) document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
-  }, [menuOpen]);
+  }, [menuOpen, footerMenuOpen]);
 
   function ConvRow({ c }: { c: Conversation }) {
     const active = c.id === activeId;
@@ -194,23 +199,40 @@ export default function Sidebar({
             <div className="text-sm font-bold truncate">{myUsername}</div>
           </div>
         </button>
-        {onOpenBg && (
+        <div className="relative shrink-0" ref={footerMenuRef}>
           <button
-            onClick={onOpenBg}
-            className="btn-ghost !py-1 !px-2 text-base shrink-0"
-            title="Chat background"
-            aria-label="Chat background"
-          >🎨</button>
-        )}
-        <button
-          onClick={() => setThemeState(toggleTheme())}
-          className="btn-ghost !py-1 !px-2 text-base shrink-0"
-          title={theme === "dark" ? "Switch to light" : "Switch to dark"}
-          aria-label="Toggle theme"
-        >
-          {theme === "dark" ? "☀️" : "🌙"}
-        </button>
-        <button onClick={onLogout} className="btn-ghost !py-1 !px-2 text-xs shrink-0">Leave</button>
+            onClick={() => setFooterMenuOpen((s) => !s)}
+            className="btn-ghost !py-1 !px-2 text-base"
+            title="Options"
+            aria-label="Options"
+          >⋯</button>
+          {footerMenuOpen && (
+            <div className="absolute right-0 bottom-[calc(100%+6px)] z-30 solid-card p-1 w-48">
+              {onOpenBg && (
+                <button
+                  className="w-full text-left px-2 py-2 rounded-md hover:bg-cloud flex items-center gap-2 text-sm font-semibold"
+                  onClick={() => { setFooterMenuOpen(false); onOpenBg(); }}
+                >
+                  <span>🎨</span> Chat theme
+                </button>
+              )}
+              <button
+                className="w-full text-left px-2 py-2 rounded-md hover:bg-cloud flex items-center gap-2 text-sm font-semibold"
+                onClick={() => { setFooterMenuOpen(false); setThemeState(toggleTheme()); }}
+              >
+                <span>{theme === "dark" ? "☀️" : "🌙"}</span>
+                {theme === "dark" ? "Light mode" : "Dark mode"}
+              </button>
+              <div className="border-t-2 border-ink/10 my-1" />
+              <button
+                className="w-full text-left px-2 py-2 rounded-md hover:bg-red-100 flex items-center gap-2 text-sm font-semibold text-red-700"
+                onClick={() => { setFooterMenuOpen(false); onLogout(); }}
+              >
+                <span>🚪</span> Leave
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </aside>
   );
