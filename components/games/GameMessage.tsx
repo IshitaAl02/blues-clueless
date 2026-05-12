@@ -10,10 +10,14 @@ export default function GameMessage({
   gameId,
   myUserId,
   usernameOf,
+  onRestart,
+  onNewGame,
 }: {
   gameId: string;
   myUserId: string;
   usernameOf: (id: string) => string;
+  onRestart?: (kind: ChatGame["kind"], opponentId: string) => void;
+  onNewGame?: () => void;
 }) {
   const [game, setGame] = useState<ChatGame | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -75,11 +79,37 @@ export default function GameMessage({
     );
   }
 
+  function PlayAgainBar() {
+    if (!isPlayer || !onRestart || !oppId) return null;
+    return (
+      <div className="mt-3 pt-2 border-t border-ink/10 flex flex-wrap gap-2">
+        <button
+          className="btn-primary !py-1 !px-3 text-xs"
+          onClick={() => onRestart(game!.kind, oppId)}
+          title={`Start another ${meta.name} with @${usernameOf(oppId)}`}
+        >🔁 Rematch</button>
+        {onNewGame && (
+          <button className="btn-ghost !py-1 !px-3 text-xs" onClick={onNewGame}>🎮 New game</button>
+        )}
+      </div>
+    );
+  }
+
   if (game.status === "declined") {
-    return <Wrapper meta={meta}><p className="text-sm italic opacity-70">Challenge declined.</p></Wrapper>;
+    return (
+      <Wrapper meta={meta}>
+        <p className="text-sm italic opacity-70">Challenge declined.</p>
+        <PlayAgainBar />
+      </Wrapper>
+    );
   }
   if (game.status === "abandoned") {
-    return <Wrapper meta={meta}><p className="text-sm italic opacity-70">Game abandoned.</p></Wrapper>;
+    return (
+      <Wrapper meta={meta}>
+        <p className="text-sm italic opacity-70">Game abandoned.</p>
+        <PlayAgainBar />
+      </Wrapper>
+    );
   }
 
   const myTurn = isPlayer && game.status === "active" && (game.kind === "rps" || game.turn === myUserId);
@@ -112,6 +142,7 @@ export default function GameMessage({
       {game.status === "draw" && (
         <div className="mt-2 text-sm font-bold opacity-80">🤝 It's a draw.</div>
       )}
+      {(game.status === "won" || game.status === "draw") && <PlayAgainBar />}
     </Wrapper>
   );
 }

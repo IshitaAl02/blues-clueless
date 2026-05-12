@@ -508,6 +508,8 @@ export default function ChatRoom({
           replyingTo={replyingTo}
           composing={composing}
           usernameOf={usernameOf}
+          onGameRestart={startGame}
+          onOpenNewGame={conversation.kind !== "lobby" ? () => setShowGamePicker(true) : undefined}
         />
         <MessageInput
           onSend={send}

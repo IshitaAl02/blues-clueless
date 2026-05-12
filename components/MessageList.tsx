@@ -59,6 +59,8 @@ export default function MessageList({
   replyingTo,
   composing,
   usernameOf,
+  onGameRestart,
+  onOpenNewGame,
 }: {
   messages: ChatMessage[];
   myUserId: string;
@@ -74,6 +76,8 @@ export default function MessageList({
   replyingTo: ReplyRef | null;
   composing: boolean;
   usernameOf?: (id: string) => string;
+  onGameRestart?: (kind: any, opponentId: string) => void;
+  onOpenNewGame?: () => void;
 }) {
   const QUICK_REACTIONS = ["❤️", "😂", "👍", "😮", "🐾"];
   const ref = useRef<HTMLDivElement>(null);
@@ -353,6 +357,8 @@ export default function MessageList({
                           gameId={m.gameId}
                           myUserId={myUserId}
                           usernameOf={(id) => usernameOf?.(id) ?? (profiles[id]?.username ?? "user")}
+                          onRestart={onGameRestart}
+                          onNewGame={onOpenNewGame}
                         />
                       )}
                       {m.kind === "image" && m.imageData && (
