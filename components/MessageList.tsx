@@ -6,6 +6,7 @@ import { buildReplyRef } from "@/lib/reply";
 import { ProfileMap, seedFor } from "@/lib/profilesCache";
 import { RenderTextWithMentions } from "./Mentions";
 import ImageLightbox from "./ImageLightbox";
+import GameMessage from "./games/GameMessage";
 import { avatarUrlForUser, colorForUser } from "@/lib/avatar";
 
 function Avatar({ seed, size = 36 }: { seed: string; size?: number }) {
@@ -57,6 +58,7 @@ export default function MessageList({
   onReact,
   replyingTo,
   composing,
+  usernameOf,
 }: {
   messages: ChatMessage[];
   myUserId: string;
@@ -71,6 +73,7 @@ export default function MessageList({
   onReact: (messageId: string, emoji: string) => void;
   replyingTo: ReplyRef | null;
   composing: boolean;
+  usernameOf?: (id: string) => string;
 }) {
   const QUICK_REACTIONS = ["❤️", "😂", "👍", "😮", "🐾"];
   const ref = useRef<HTMLDivElement>(null);
@@ -344,6 +347,13 @@ export default function MessageList({
                       )}
                       {m.kind === "text" && m.text && (
                         <span><RenderTextWithMentions text={m.text} mine={mine} /></span>
+                      )}
+                      {m.kind === "game" && m.gameId && (
+                        <GameMessage
+                          gameId={m.gameId}
+                          myUserId={myUserId}
+                          usernameOf={(id) => usernameOf?.(id) ?? (profiles[id]?.username ?? "user")}
+                        />
                       )}
                       {m.kind === "image" && m.imageData && (
                         <>

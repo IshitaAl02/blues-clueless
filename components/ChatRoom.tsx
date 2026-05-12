@@ -12,6 +12,8 @@ import {
 } from "@/lib/messages";
 import MessageList from "./MessageList";
 import MessageInput from "./MessageInput";
+import GamePicker from "./games/GamePicker";
+import { createGame, GAME_META, GameKind } from "@/lib/games";
 import Toasts, { ToastItem } from "./Toasts";
 import { PawLogo } from "./Cartoons";
 import { avatarUrlForUser, colorForUser } from "@/lib/avatar";
@@ -44,6 +46,7 @@ export default function ChatRoom({
   const [notifEnabled, setNotifEnabled] = useState(false);
   const [replyingTo, setReplyingTo] = useState<ReplyRef | null>(null);
   const [composing, setComposing] = useState(false);
+  const [showGamePicker, setShowGamePicker] = useState(false);
 
   const convLabel = displayName(conversation, userId);
 
@@ -294,6 +297,30 @@ export default function ChatRoom({
     [userId, username, replyingTo, conversation.id],
   );
 
+  const startGame = useCallback(
+    async (kind: GameKind, opponentId: string) => {
+      const game = await createGame({
+        conversation_id: conversation.id,
+        kind,
+        host_id: userId,
+        opponent_id: opponentId,
+      });
+      send({ kind: "game", gameId: game.id, text: `🎮 challenged you to ${GAME_META[kind].name}` });
+    },
+    [conversation.id, userId],
+  );
+
+  const usernameOf = useCallback(
+    (id: string): string => {
+      if (id === userId) return username;
+      const fromConv = conversation.members.find((m) => m.user_id === id);
+      if (fromConv) return fromConv.username;
+      const prof = profiles[id];
+      return prof?.username ?? "user";
+    },
+    [conversation.members, profiles, userId, username],
+  );
+
   const editMessage = useCallback(
     (id: string, text: string) => {
       setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, text, edited: true } : m)));
@@ -480,6 +507,7 @@ export default function ChatRoom({
           onReact={toggleReaction}
           replyingTo={replyingTo}
           composing={composing}
+          usernameOf={usernameOf}
         />
         <MessageInput
           onSend={send}
@@ -488,6 +516,15 @@ export default function ChatRoom({
           onCancelReply={() => setReplyingTo(null)}
           mentionCandidates={mentionCandidates}
           onComposingChange={setComposing}
+          onOpenGames={conversation.kind !== "lobby" ? () => setShowGamePicker(true) : undefined}
+        />
+
+        <GamePicker
+          open={showGamePicker}
+          conversation={conversation}
+          myUserId={userId}
+          onClose={() => setShowGamePicker(false)}
+          onStart={startGame}
         />
     </div>
   );

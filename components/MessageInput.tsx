@@ -24,6 +24,7 @@ export default function MessageInput({
   onCancelReply,
   mentionCandidates,
   onComposingChange,
+  onOpenGames,
 }: {
   onSend: (m: Outbound) => void;
   onTyping: () => void;
@@ -31,6 +32,7 @@ export default function MessageInput({
   onCancelReply: () => void;
   mentionCandidates: MentionCandidate[];
   onComposingChange?: (composing: boolean) => void;
+  onOpenGames?: () => void;
 }) {
   const [text, setText] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
@@ -278,6 +280,15 @@ export default function MessageInput({
           disabled={busy}
           aria-label="Image"
         >🖼️</button>
+        {onOpenGames && (
+          <button
+            type="button"
+            className="btn-ghost !px-2 !py-1 sm:!px-3 sm:!py-2 text-base sm:text-lg shrink-0"
+            onClick={onOpenGames}
+            aria-label="Start a game"
+            title="Start a game"
+          >🎮</button>
+        )}
         <input
           ref={fileRef}
           type="file"
