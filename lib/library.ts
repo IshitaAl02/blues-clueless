@@ -50,6 +50,12 @@ function hexToRgb(hex: string): [number, number, number] | null {
   const n = parseInt(m[1], 16);
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
+// Find the first hex color in any string (gradient, hex, or just text).
+export function firstHex(s: string | null | undefined): string | null {
+  if (!s) return null;
+  const m = /#([0-9a-fA-F]{6})/.exec(s);
+  return m ? `#${m[1].toLowerCase()}` : null;
+}
 function rgbToHex(r: number, g: number, b: number): string {
   const c = (n: number) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, "0");
   return `#${c(r)}${c(g)}${c(b)}`;
@@ -99,15 +105,19 @@ export function deriveChatPalette(opts: {
   text?: string | null;
   bg?: string | null;
 }): DerivedChatPalette | null {
-  const chrome = opts.chrome || (opts.bg ? darken(opts.bg, 0.25) : null);
-  if (!chrome || !hexToRgb(chrome)) return null;
-  const isLight = relativeLuminance(chrome) > 0.55;
-  const chromeText = opts.text || contrastText(chrome);
-  const bubbleMeBg = isLight ? darken(chrome, 0.1) : lighten(chrome, 0.05);
+  // chrome priority: explicit chrome hex → bg hex (parsed from gradient ok) → null
+  const chromeHex = firstHex(opts.chrome) || (opts.bg ? darkenStr(firstHex(opts.bg)) : null);
+  if (!chromeHex) return null;
+  const isLight = relativeLuminance(chromeHex) > 0.55;
+  const chromeText = firstHex(opts.text) || contrastText(chromeHex);
+  const bubbleMeBg = isLight ? darken(chromeHex, 0.1) : lighten(chromeHex, 0.05);
   const bubbleMeText = contrastText(bubbleMeBg);
-  const accentMine = isLight ? lighten(chrome, 0.1) : lighten(chrome, 0.2);
-  const paneTint = isLight ? lighten(chrome, 0.7) : lighten(chrome, 0.85);
-  return { chromeBg: chrome, chromeText, bubbleMeBg, bubbleMeText, accentMine, paneTint };
+  const accentMine = isLight ? lighten(chromeHex, 0.1) : lighten(chromeHex, 0.2);
+  const paneTint = isLight ? lighten(chromeHex, 0.78) : lighten(chromeHex, 0.85);
+  return { chromeBg: chromeHex, chromeText, bubbleMeBg, bubbleMeText, accentMine, paneTint };
+}
+function darkenStr(hex: string | null): string | null {
+  return hex ? darken(hex, 0.22) : null;
 }
 
 export interface Theme {

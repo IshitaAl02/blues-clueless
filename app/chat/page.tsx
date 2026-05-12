@@ -199,6 +199,12 @@ export default function ChatPage() {
         ["--bubble-me-bg" as any]: palette.bubbleMeBg,
         ["--bubble-me-text" as any]: palette.bubbleMeText,
         ["--accent-mine" as any]: palette.accentMine,
+        ["--card-glass" as any]: palette.paneTint,
+        ["--card-bg" as any]: palette.paneTint,
+        ["--bubble-them-bg" as any]: palette.paneTint,
+        ["--bubble-them-text" as any]: palette.chromeText,
+        ["--hover-bg" as any]: palette.paneTint,
+        ["--reply-bg" as any]: palette.paneTint,
       } as React.CSSProperties)
     : {};
 

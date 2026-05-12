@@ -117,7 +117,7 @@ export default function Sidebar({
       `}
     >
       <div
-        className="px-3 py-3 border-b-2 border-ink flex items-center gap-2 relative on-accent"
+        className="px-3 py-3 border-b-2 border-ink flex items-center gap-2 relative"
         style={{ background: "var(--chrome-bg, linear-gradient(135deg,#5DF8D8 0%,#6FD1D7 100%))", color: "var(--chrome-text, #093C5D)" }}
       >
         <PawLogo size={32} />
@@ -162,7 +162,11 @@ export default function Sidebar({
       <div className="flex-1 overflow-y-auto p-2 space-y-3">
         <Link
           href="/library"
-          className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-left transition bg-gradient-to-r from-sky/40 to-mint/40 hover:from-sky/60 hover:to-mint/60 border-2 border-ink on-accent font-bold"
+          className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-left transition border-2 border-ink font-bold hover:opacity-90"
+          style={{
+            background: "var(--accent-mine, linear-gradient(90deg,#6FD1D7 0%,#5DF8D8 100%))",
+            color: "var(--chrome-text, #093C5D)",
+          }}
         >
           <span className="w-7 h-7 rounded-full flex items-center justify-center text-sm border-2 border-ink bg-white">📚</span>
           <span className="truncate flex-1">My Lib</span>

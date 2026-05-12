@@ -5,6 +5,7 @@ import type { ChatMessage, PresenceUser, ReadReceipt, ReplyRef } from "@/lib/typ
 import { buildReplyRef } from "@/lib/reply";
 import { ProfileMap, seedFor } from "@/lib/profilesCache";
 import { RenderTextWithMentions } from "./Mentions";
+import ImageLightbox from "./ImageLightbox";
 import { avatarUrlForUser, colorForUser } from "@/lib/avatar";
 
 function Avatar({ seed, size = 36 }: { seed: string; size?: number }) {
@@ -78,6 +79,7 @@ export default function MessageList({
   const [draft, setDraft] = useState("");
   const [showScrollDown, setShowScrollDown] = useState(false);
   const [unseenCount, setUnseenCount] = useState(0);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   // Hysteresis: once you're within ~240px we treat you as "at the bottom" and
   // hide the jump button; you have to scroll up past ~280px before the button
@@ -245,7 +247,7 @@ export default function MessageList({
               {showHeader && (
                 <div className={`text-xs font-bold mb-1 ${mine ? "text-right mr-1" : "ml-1"}`}>
                   <span
-                    className={`px-2 py-0.5 rounded-full ${mine ? "on-accent" : ""}`}
+                    className="px-2 py-0.5 rounded-full"
                     style={{
                       background: mine ? "var(--accent-mine, #5DF8D8)" : `${accent}22`,
                       border: `1.5px solid ${mine ? "var(--chrome-text, #093C5D)" : accent}`,
@@ -346,7 +348,12 @@ export default function MessageList({
                       {m.kind === "image" && m.imageData && (
                         <>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={m.imageData} alt="shared" className="rounded-lg max-h-72" />
+                          <img
+                            src={m.imageData}
+                            alt="shared"
+                            className="rounded-lg max-h-72 cursor-zoom-in hover:brightness-95 transition"
+                            onClick={() => setLightboxSrc(m.imageData!)}
+                          />
                           {m.text && (
                             <div className="mt-1 text-sm break-words">
                               <RenderTextWithMentions text={m.text} mine={mine} />
@@ -357,7 +364,12 @@ export default function MessageList({
                       {m.kind === "gif" && m.gifUrl && (
                         <>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={m.gifUrl} alt="gif" className="rounded-lg max-h-60" />
+                          <img
+                            src={m.gifUrl}
+                            alt="gif"
+                            className="rounded-lg max-h-60 cursor-zoom-in hover:brightness-95 transition"
+                            onClick={() => setLightboxSrc(m.gifUrl!)}
+                          />
                           {m.text && (
                             <div className="mt-1 text-sm break-words">
                               <RenderTextWithMentions text={m.text} mine={mine} />
@@ -431,6 +443,7 @@ export default function MessageList({
         )}
       </button>
     )}
+    <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
     </div>
   );
 }

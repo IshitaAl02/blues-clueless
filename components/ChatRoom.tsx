@@ -369,7 +369,7 @@ export default function ChatRoom({
       <Toasts toasts={toasts} onDismiss={dismissToast} profiles={profiles} />
 
       <header
-        className="flex items-center justify-between px-4 py-3 border-b-2 border-ink on-accent"
+        className="flex items-center justify-between px-4 py-3 border-b-2 border-ink"
         style={{
           background: "var(--chrome-bg, linear-gradient(135deg, #5DF8D8 0%, #6FD1D7 100%))",
           color: "var(--chrome-text, #093C5D)",
