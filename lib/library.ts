@@ -235,7 +235,34 @@ export async function getPrefs(userId: string): Promise<LibraryPrefs | null> {
     .eq("user_id", userId)
     .maybeSingle();
   if (error) throw error;
-  return (data ?? null) as LibraryPrefs | null;
+  const prefs = (data ?? null) as LibraryPrefs | null;
+  if (prefs) cachePrefs(userId, prefs);
+  return prefs;
+}
+
+// ─── localStorage cache so theme paints instantly on every navigation ───
+const PREFS_CACHE_KEY = (uid: string) => `bc:libraryPrefs:${uid}`;
+
+export function getCachedPrefs(userId: string | null | undefined): LibraryPrefs | null {
+  if (!userId) return null;
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(PREFS_CACHE_KEY(userId));
+    return raw ? (JSON.parse(raw) as LibraryPrefs) : null;
+  } catch { return null; }
+}
+
+export function cachePrefs(userId: string, prefs: LibraryPrefs): void {
+  if (typeof window === "undefined") return;
+  try { window.localStorage.setItem(PREFS_CACHE_KEY(userId), JSON.stringify(prefs)); } catch {}
+}
+
+// Merge a partial update into the local cache so the next page navigation
+// sees the latest values immediately — even before the server round-trip.
+export function patchCachedPrefs(userId: string, patch: Partial<LibraryPrefs>): void {
+  if (typeof window === "undefined" || !userId) return;
+  const cur = getCachedPrefs(userId) ?? ({ user_id: userId } as LibraryPrefs);
+  cachePrefs(userId, { ...cur, ...patch } as LibraryPrefs);
 }
 
 export async function setPageBg(userId: string, page_bg: string | null) {

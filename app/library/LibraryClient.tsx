@@ -10,7 +10,9 @@ import {
   createSection,
   deleteCard,
   deleteSection,
+  getCachedPrefs,
   getPrefs,
+  patchCachedPrefs,
   listCards,
   listSections,
   LibraryCard,
@@ -68,13 +70,25 @@ export default function LibraryClient() {
       const session = data.session;
       if (!session) { router.replace("/login"); return; }
       setUserId(session.user.id);
+      // 1) instant paint from cache
+      const cached = getCachedPrefs(session.user.id);
+      if (cached) {
+        setPageBgState(cached.page_bg ?? null);
+        setPageImageState(cached.page_image ?? null);
+        setThemeKey(cached.theme_key ?? null);
+        if (cached.card_bg) setCardBg(cached.card_bg);
+        if (cached.card_text) setCardText(cached.card_text);
+      }
+      // 2) refresh from server (getPrefs re-caches automatically)
       try {
         const prefs = await getPrefs(session.user.id);
-        setPageBgState(prefs?.page_bg ?? null);
-        setPageImageState(prefs?.page_image ?? null);
-        setThemeKey(prefs?.theme_key ?? null);
-        if (prefs?.card_bg) setCardBg(prefs.card_bg);
-        if (prefs?.card_text) setCardText(prefs.card_text);
+        if (prefs) {
+          setPageBgState(prefs.page_bg ?? null);
+          setPageImageState(prefs.page_image ?? null);
+          setThemeKey(prefs.theme_key ?? null);
+          if (prefs.card_bg) setCardBg(prefs.card_bg);
+          if (prefs.card_text) setCardText(prefs.card_text);
+        }
       } catch (e: any) {
         // table may not exist yet; ignore
       }
@@ -149,23 +163,27 @@ export default function LibraryClient() {
   async function onSavePageBg(bg: string | null) {
     if (!userId) return;
     await setPageBg(userId, bg);
+    patchCachedPrefs(userId, { page_bg: bg });
     setPageBgState(bg);
   }
 
   async function onSavePageImage(img: string | null) {
     if (!userId) return;
     await setPageImage(userId, img);
+    patchCachedPrefs(userId, { page_image: img });
     setPageImageState(img);
   }
 
   async function onPickTheme(t: Theme) {
     if (!userId) return;
-    await setTheme(userId, {
+    const patch = {
       page_bg: t.page_bg,
       card_bg: t.card_bg,
       card_text: t.card_text,
       theme_key: t.key,
-    });
+    };
+    await setTheme(userId, patch);
+    patchCachedPrefs(userId, patch);
     setPageBgState(t.page_bg);
     setCardBg(t.card_bg);
     setCardText(t.card_text);

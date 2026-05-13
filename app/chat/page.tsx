@@ -9,7 +9,17 @@ import { NewGroupModal, NewDMModal } from "@/components/ConversationModals";
 import ProfileModal from "@/components/ProfileModal";
 import GroupSettingsModal from "@/components/GroupSettingsModal";
 import ChatBgModal from "@/components/ChatBgModal";
-import { deriveChatPalette, getPrefs, setChatBg, setChatChrome, setChatImage, setChatText, setChatTheme } from "@/lib/library";
+import {
+  deriveChatPalette,
+  getCachedPrefs,
+  getPrefs,
+  patchCachedPrefs,
+  setChatBg,
+  setChatChrome,
+  setChatImage,
+  setChatText,
+  setChatTheme,
+} from "@/lib/library";
 import { Conversation, LOBBY, listConversations } from "@/lib/conversations";
 import { getSavedSeed, onSeedChange, loadMySeedFromDb } from "@/lib/profile";
 import { fetchAllProfiles, ProfileMap, subscribeProfiles } from "@/lib/profilesCache";
@@ -59,12 +69,23 @@ export default function ChatPage() {
       if (!name) { setErr("Couldn't determine username."); return; }
       setUserId(uid);
       setUsername(name);
+      // 1) instant paint from localStorage cache (no network)
+      const cached = getCachedPrefs(uid);
+      if (cached) {
+        setChatBgState(cached.chat_bg ?? null);
+        setChatImageState(cached.chat_image ?? null);
+        setChatTextState(cached.chat_text ?? null);
+        setChatChromeState(cached.chat_chrome ?? null);
+      }
+      // 2) refresh from server in the background; getPrefs also re-caches.
       try {
         const prefs = await getPrefs(uid);
-        setChatBgState(prefs?.chat_bg ?? null);
-        setChatImageState(prefs?.chat_image ?? null);
-        setChatTextState(prefs?.chat_text ?? null);
-        setChatChromeState(prefs?.chat_chrome ?? null);
+        if (prefs) {
+          setChatBgState(prefs.chat_bg ?? null);
+          setChatImageState(prefs.chat_image ?? null);
+          setChatTextState(prefs.chat_text ?? null);
+          setChatChromeState(prefs.chat_chrome ?? null);
+        }
       } catch {}
     })();
   }, [router]);
@@ -294,16 +315,18 @@ export default function ChatPage() {
         initialChrome={chatChrome}
         onClose={() => setShowBg(false)}
         onSaveTheme={async (t) => {
-          await setChatTheme(userId, { chat_bg: t.page_bg, chat_text: t.card_text, chat_image: null, chat_chrome: t.card_bg });
+          const patch = { chat_bg: t.page_bg, chat_text: t.card_text, chat_image: null, chat_chrome: t.card_bg };
+          await setChatTheme(userId, patch);
+          patchCachedPrefs(userId, patch);
           setChatBgState(t.page_bg);
           setChatTextState(t.card_text);
           setChatChromeState(t.card_bg);
           setChatImageState(null);
         }}
-        onSaveBg={async (v) => { await setChatBg(userId, v); setChatBgState(v); }}
-        onSaveText={async (v) => { await setChatText(userId, v); setChatTextState(v); }}
-        onSaveChrome={async (v) => { await setChatChrome(userId, v); setChatChromeState(v); }}
-        onSaveImage={async (v) => { await setChatImage(userId, v); setChatImageState(v); }}
+        onSaveBg={async (v) => { await setChatBg(userId, v); patchCachedPrefs(userId, { chat_bg: v }); setChatBgState(v); }}
+        onSaveText={async (v) => { await setChatText(userId, v); patchCachedPrefs(userId, { chat_text: v }); setChatTextState(v); }}
+        onSaveChrome={async (v) => { await setChatChrome(userId, v); patchCachedPrefs(userId, { chat_chrome: v }); setChatChromeState(v); }}
+        onSaveImage={async (v) => { await setChatImage(userId, v); patchCachedPrefs(userId, { chat_image: v }); setChatImageState(v); }}
       />
       <GroupSettingsModal
         open={showGroupSettings}
