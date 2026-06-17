@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import GifPicker from "./GifPicker";
+import VoiceRecorder from "./VoiceRecorder";
 import { fileToCompressedDataUrl } from "@/lib/image";
 import type { ChatMessage, ReplyRef } from "@/lib/types";
 import { avatarUrlForUser, colorForUser } from "@/lib/avatar";
@@ -25,6 +26,7 @@ export default function MessageInput({
   mentionCandidates,
   onComposingChange,
   onOpenGames,
+  myUserId,
 }: {
   onSend: (m: Outbound) => void;
   onTyping: () => void;
@@ -33,12 +35,14 @@ export default function MessageInput({
   mentionCandidates: MentionCandidate[];
   onComposingChange?: (composing: boolean) => void;
   onOpenGames?: () => void;
+  myUserId?: string;
 }) {
   const [text, setText] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
   const [showGif, setShowGif] = useState(false);
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState<Pending>(null);
+  const [recording, setRecording] = useState(false);
   const [mention, setMention] = useState<{ start: number; query: string } | null>(null);
   const [mentionIdx, setMentionIdx] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -214,6 +218,19 @@ export default function MessageInput({
         </div>
       )}
 
+      {recording && myUserId && (
+        <div className="mb-2">
+          <VoiceRecorder
+            userId={myUserId}
+            onCancel={() => setRecording(false)}
+            onSend={async ({ audioUrl, audioDurationMs, audioPeaks }) => {
+              onSend({ kind: "voice", audioUrl, audioDurationMs, audioPeaks } as any);
+              setRecording(false);
+            }}
+          />
+        </div>
+      )}
+
       {showEmoji && (
         <div className="absolute bottom-20 left-3 z-[100]">
           <EmojiPicker
@@ -288,6 +305,16 @@ export default function MessageInput({
             aria-label="Start a game"
             title="Start a game"
           >🎮</button>
+        )}
+        {myUserId && (
+          <button
+            type="button"
+            className="btn-ghost !px-2 !py-1 sm:!px-3 sm:!py-2 text-base sm:text-lg shrink-0"
+            onClick={() => { if (!pending && !recording) setRecording(true); }}
+            disabled={!!pending || recording}
+            aria-label="Record voice message"
+            title="Record voice message"
+          >🎤</button>
         )}
         <input
           ref={fileRef}

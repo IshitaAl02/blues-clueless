@@ -7,6 +7,7 @@ import { ProfileMap, seedFor } from "@/lib/profilesCache";
 import { RenderTextWithMentions } from "./Mentions";
 import ImageLightbox from "./ImageLightbox";
 import GameMessage from "./games/GameMessage";
+import VoicePlayer from "./VoicePlayer";
 import { avatarUrlForUser, colorForUser } from "@/lib/avatar";
 
 function Avatar({ seed, size = 36 }: { seed: string; size?: number }) {
@@ -359,6 +360,14 @@ export default function MessageList({
                           usernameOf={(id) => usernameOf?.(id) ?? (profiles[id]?.username ?? "user")}
                           onRestart={onGameRestart}
                           onNewGame={onOpenNewGame}
+                        />
+                      )}
+                      {m.kind === "voice" && m.audioUrl && (
+                        <VoicePlayer
+                          src={m.audioUrl}
+                          durationMs={m.audioDurationMs}
+                          peaks={m.audioPeaks}
+                          mine={mine}
                         />
                       )}
                       {m.kind === "image" && m.imageData && (

@@ -1,4 +1,4 @@
-export type MessageKind = "text" | "image" | "gif" | "game";
+export type MessageKind = "text" | "image" | "gif" | "game" | "voice";
 
 export interface ChatMessage {
   id: string;
@@ -9,6 +9,9 @@ export interface ChatMessage {
   imageData?: string; // data URL (base64) — ephemeral, never stored
   gifUrl?: string;
   gameId?: string;
+  audioUrl?: string;
+  audioDurationMs?: number;
+  audioPeaks?: number[];
   ts: number;
   edited?: boolean;
   replyTo?: ReplyRef;

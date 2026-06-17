@@ -519,6 +519,7 @@ export default function ChatRoom({
           mentionCandidates={mentionCandidates}
           onComposingChange={setComposing}
           onOpenGames={conversation.kind !== "lobby" ? () => setShowGamePicker(true) : undefined}
+          myUserId={userId}
         />
 
         <GamePicker

@@ -8,11 +8,14 @@ interface DbRow {
   conversation_id: string;
   user_id: string;
   username: string;
-  kind: "text" | "image" | "gif" | "game";
+  kind: "text" | "image" | "gif" | "game" | "voice";
   text: string | null;
   image_data: string | null;
   gif_url: string | null;
   game_id: string | null;
+  audio_url: string | null;
+  audio_duration_ms: number | null;
+  audio_peaks: number[] | null;
   reply_to: any;
   edited: boolean | null;
   created_at: string;
@@ -28,6 +31,9 @@ function toMessage(r: DbRow): ChatMessage {
     imageData: r.image_data ?? undefined,
     gifUrl: r.gif_url ?? undefined,
     gameId: r.game_id ?? undefined,
+    audioUrl: r.audio_url ?? undefined,
+    audioDurationMs: r.audio_duration_ms ?? undefined,
+    audioPeaks: r.audio_peaks ?? undefined,
     replyTo: r.reply_to ?? undefined,
     edited: r.edited ?? false,
     ts: new Date(r.created_at).getTime(),
@@ -61,6 +67,9 @@ export async function insertMessageDb(conversationId: string, m: ChatMessage): P
     image_data: m.imageData ?? null,
     gif_url: m.gifUrl ?? null,
     game_id: m.gameId ?? null,
+    audio_url: m.audioUrl ?? null,
+    audio_duration_ms: m.audioDurationMs ?? null,
+    audio_peaks: m.audioPeaks ?? null,
     reply_to: m.replyTo ?? null,
     edited: m.edited ?? false,
     created_at: new Date(m.ts).toISOString(),
