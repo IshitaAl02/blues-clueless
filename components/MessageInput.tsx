@@ -291,10 +291,10 @@ export default function MessageInput({
       <div className="flex items-end gap-1 sm:gap-2">
         <button
           type="button"
-          className="btn-ghost !px-2 !py-1 sm:!px-3 sm:!py-2 text-base sm:text-lg shrink-0"
-          onClick={() => { setShowEmoji((s) => !s); setShowGif(false); setAttachOpen(false); }}
-          aria-label="Emoji"
-        >😊</button>
+          className="btn-ghost !px-2 !py-1 sm:!px-3 sm:!py-2 text-xs sm:text-lg font-bold shrink-0"
+          onClick={() => { setShowGif((s) => !s); setShowEmoji(false); setAttachOpen(false); }}
+          aria-label="GIF"
+        >GIF</button>
 
         <div className="relative shrink-0" ref={attachRef}>
           <button
@@ -310,14 +310,14 @@ export default function MessageInput({
               <button
                 type="button"
                 className="w-full text-left px-2 py-2 rounded-md hover:bg-cloud flex items-center gap-2 text-sm font-semibold"
-                onClick={() => { setAttachOpen(false); fileRef.current?.click(); }}
-                disabled={busy}
-              ><span>🖼️</span> Image</button>
+                onClick={() => { setAttachOpen(false); setShowEmoji(true); setShowGif(false); }}
+              ><span>😊</span> Emoji</button>
               <button
                 type="button"
                 className="w-full text-left px-2 py-2 rounded-md hover:bg-cloud flex items-center gap-2 text-sm font-semibold"
-                onClick={() => { setAttachOpen(false); setShowGif(true); setShowEmoji(false); }}
-              ><span>🎞️</span> GIF</button>
+                onClick={() => { setAttachOpen(false); fileRef.current?.click(); }}
+                disabled={busy}
+              ><span>🖼️</span> Image</button>
               {myUserId && (
                 <button
                   type="button"
