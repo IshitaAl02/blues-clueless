@@ -43,6 +43,17 @@ export default function MessageInput({
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState<Pending>(null);
   const [recording, setRecording] = useState(false);
+  const [attachOpen, setAttachOpen] = useState(false);
+  const attachRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!attachOpen) return;
+    function onDoc(e: MouseEvent) {
+      if (attachRef.current && !attachRef.current.contains(e.target as Node)) setAttachOpen(false);
+    }
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [attachOpen]);
   const [mention, setMention] = useState<{ start: number; query: string } | null>(null);
   const [mentionIdx, setMentionIdx] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -281,41 +292,53 @@ export default function MessageInput({
         <button
           type="button"
           className="btn-ghost !px-2 !py-1 sm:!px-3 sm:!py-2 text-base sm:text-lg shrink-0"
-          onClick={() => { setShowEmoji((s) => !s); setShowGif(false); }}
+          onClick={() => { setShowEmoji((s) => !s); setShowGif(false); setAttachOpen(false); }}
           aria-label="Emoji"
         >😊</button>
-        <button
-          type="button"
-          className="btn-ghost !px-2 !py-1 sm:!px-3 sm:!py-2 text-xs sm:text-lg font-bold shrink-0"
-          onClick={() => { setShowGif((s) => !s); setShowEmoji(false); }}
-          aria-label="GIF"
-        >GIF</button>
-        <button
-          type="button"
-          className="btn-ghost !px-2 !py-1 sm:!px-3 sm:!py-2 text-base sm:text-lg shrink-0"
-          onClick={() => fileRef.current?.click()}
-          disabled={busy}
-          aria-label="Image"
-        >🖼️</button>
-        {onOpenGames && (
+
+        <div className="relative shrink-0" ref={attachRef}>
           <button
             type="button"
-            className="btn-ghost !px-2 !py-1 sm:!px-3 sm:!py-2 text-base sm:text-lg shrink-0"
-            onClick={onOpenGames}
-            aria-label="Start a game"
-            title="Start a game"
-          >🎮</button>
-        )}
-        {myUserId && (
-          <button
-            type="button"
-            className="btn-ghost !px-2 !py-1 sm:!px-3 sm:!py-2 text-base sm:text-lg shrink-0"
-            onClick={() => { if (!pending && !recording) setRecording(true); }}
-            disabled={!!pending || recording}
-            aria-label="Record voice message"
-            title="Record voice message"
-          >🎤</button>
-        )}
+            className="btn-ghost !px-2 !py-1 sm:!px-3 sm:!py-2 text-base sm:text-lg"
+            onClick={() => { setAttachOpen((s) => !s); setShowEmoji(false); setShowGif(false); }}
+            aria-label="Attach"
+            aria-expanded={attachOpen}
+            title="Attach"
+          >＋</button>
+          {attachOpen && (
+            <div className="absolute bottom-[calc(100%+6px)] left-0 z-30 solid-card p-1 w-40">
+              <button
+                type="button"
+                className="w-full text-left px-2 py-2 rounded-md hover:bg-cloud flex items-center gap-2 text-sm font-semibold"
+                onClick={() => { setAttachOpen(false); fileRef.current?.click(); }}
+                disabled={busy}
+              ><span>🖼️</span> Image</button>
+              <button
+                type="button"
+                className="w-full text-left px-2 py-2 rounded-md hover:bg-cloud flex items-center gap-2 text-sm font-semibold"
+                onClick={() => { setAttachOpen(false); setShowGif(true); setShowEmoji(false); }}
+              ><span>🎞️</span> GIF</button>
+              {myUserId && (
+                <button
+                  type="button"
+                  className="w-full text-left px-2 py-2 rounded-md hover:bg-cloud flex items-center gap-2 text-sm font-semibold disabled:opacity-40"
+                  onClick={() => { setAttachOpen(false); if (!pending && !recording) setRecording(true); }}
+                  disabled={!!pending || recording}
+                ><span>🎤</span> Voice note</button>
+              )}
+              {onOpenGames && (
+                <>
+                  <div className="border-t-2 border-ink/10 my-1" />
+                  <button
+                    type="button"
+                    className="w-full text-left px-2 py-2 rounded-md hover:bg-cloud flex items-center gap-2 text-sm font-semibold"
+                    onClick={() => { setAttachOpen(false); onOpenGames(); }}
+                  ><span>🎮</span> Play a game</button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
         <input
           ref={fileRef}
           type="file"

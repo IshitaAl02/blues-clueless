@@ -36,9 +36,12 @@ export default function VoiceRecorder({
         tickRef.current = window.setInterval(() => {
           const ms = Date.now() - h.startedAt;
           setElapsedMs(ms);
-          // grab tail of peaksLive for live waveform
+          // grab tail of peaksLive for live waveform, then normalize so the
+          // loudest bar in the window fills the strip.
           const tail = h.peaksLive.slice(-50);
-          setLiveBars([...tail]);
+          const peak = tail.reduce((m, v) => (v > m ? v : m), 0);
+          const norm = peak > 0.02 ? tail.map((v) => Math.min(1, v / peak)) : tail.map(() => 0.05);
+          setLiveBars(norm);
           if (ms >= MAX_MS) stopRecording();
         }, 80);
       } catch (e: any) {
@@ -110,12 +113,12 @@ export default function VoiceRecorder({
         <>
           <span className="w-3 h-3 rounded-full bg-red-500 animate-pulse shrink-0" aria-label="recording" />
           <div className="flex-1 h-8 flex items-center gap-[2px] overflow-hidden">
-            {(liveBars.length ? liveBars : Array(50).fill(0)).map((p, i) => {
-              const h = Math.max(3, Math.round(p * 28));
+            {(liveBars.length ? liveBars : Array(50).fill(0.05)).map((p, i) => {
+              const h = Math.max(6, Math.round(6 + p * 22));
               return (
                 <span
                   key={i}
-                  style={{ background: "#dc2626", width: 2, height: `${h}px`, borderRadius: 1 }}
+                  style={{ background: "#dc2626", width: 3, height: `${h}px`, borderRadius: 2 }}
                 />
               );
             })}

@@ -69,17 +69,26 @@ export async function startRecording(): Promise<RecordingHandle> {
   }
 
   function downsample(arr: number[], n: number): number[] {
-    if (arr.length <= n) return arr.map((v) => clamp01(v));
-    const step = arr.length / n;
-    const out: number[] = [];
-    for (let i = 0; i < n; i++) {
-      const start = Math.floor(i * step);
-      const end = Math.floor((i + 1) * step);
-      let max = 0;
-      for (let k = start; k < end; k++) if (arr[k] > max) max = arr[k];
-      out.push(clamp01(max));
+    if (arr.length === 0) return Array(n).fill(0);
+    let raw: number[];
+    if (arr.length <= n) {
+      raw = arr.slice();
+    } else {
+      const step = arr.length / n;
+      raw = [];
+      for (let i = 0; i < n; i++) {
+        const start = Math.floor(i * step);
+        const end = Math.floor((i + 1) * step);
+        let max = 0;
+        for (let k = start; k < end; k++) if (arr[k] > max) max = arr[k];
+        raw.push(max);
+      }
     }
-    return out;
+    // Normalize so the loudest bar is 1.0 — keeps the waveform readable
+    // regardless of mic gain.
+    const peak = raw.reduce((m, v) => (v > m ? v : m), 0);
+    if (peak < 0.02) return raw.map(() => 0.05); // near silence: flat hint
+    return raw.map((v) => clamp01(v / peak));
   }
 
   const stop = (): Promise<RecordResult> =>

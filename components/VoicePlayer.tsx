@@ -99,15 +99,16 @@ export default function VoicePlayer({
       >
         {bars.map((p, i) => {
           const filled = (i + 1) / bars.length <= progress;
-          const h = Math.max(3, Math.round(p * 28));
+          // 6px floor so every bar is visible, scale rest to 28px peak.
+          const h = Math.max(6, Math.round(6 + p * 22));
           return (
             <span
               key={i}
               style={{
                 background: filled ? inkColor : dim,
-                width: 2,
+                width: 3,
                 height: `${h}px`,
-                borderRadius: 1,
+                borderRadius: 2,
               }}
             />
           );
